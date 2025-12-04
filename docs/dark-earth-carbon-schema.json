@@ -1,0 +1,631 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dark Earth Carbon dMRV Data Model",
+  "description": "Database schema extracted from Figma design mockups for a biochar carbon credit digital Monitoring, Reporting, and Verification system",
+  "metadata": {
+    "source": "Figma Design Mockups",
+    "source_pages": [
+      "Dashboard.pdf",
+      "Feedstock.pdf",
+      "Production_Runs.pdf",
+      "Biochar_Products.pdf",
+      "Orders.pdf",
+      "Deliveries.pdf",
+      "Application.pdf",
+      "Certification.pdf",
+      "Mobile_Data_Input.pdf"
+    ],
+    "extracted_date": "2025-12-04",
+    "company": "Dark Earth Carbon",
+    "domain": "Biochar Carbon Credits / dMRV",
+    "chain_of_custody": [
+      "Feedstock",
+      "ProductionRun",
+      "BiocharProduct",
+      "Order",
+      "Delivery",
+      "Application",
+      "CreditBatch"
+    ]
+  },
+
+  "entities": {
+    "Facility": {
+      "figma_source": "Appears across all pages as filter/context",
+      "description": "Production facility where biochar is produced",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "example": "Mafinga" },
+        "location": { "type": "string" },
+        "gps_coordinates": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } }
+      },
+      "relationships": {
+        "has_many": ["Reactor", "Feedstock", "ProductionRun", "BiocharProduct", "Order", "Delivery", "Application", "CreditBatch"]
+      }
+    },
+
+    "Reactor": {
+      "figma_source": "Appears in filters and ProductionRun details",
+      "description": "Pyrolysis reactor equipment",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "example": "R-001" },
+        "facility_id": { "type": "string", "format": "uuid" }
+      },
+      "relationships": {
+        "belongs_to": ["Facility"],
+        "has_many": ["ProductionRun"]
+      }
+    },
+
+    "Supplier": {
+      "figma_source": "Feedstock.pdf - Delivery Information section",
+      "description": "Biomass/feedstock supplier",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "example": "Woody Allen" },
+        "location": { "type": "string" },
+        "gps_coordinates": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } }
+      },
+      "relationships": {
+        "has_many": ["Feedstock"]
+      }
+    },
+
+    "Customer": {
+      "figma_source": "Orders.pdf, Deliveries.pdf, Application.pdf - Customer Details section",
+      "description": "Biochar product customer/farmer",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "example": "Kanji Lalji" },
+        "location": { "type": "string", "example": "Mafinga" },
+        "gps_coordinates": { 
+          "type": "object", 
+          "properties": { 
+            "lat": { "type": "number", "example": -9.01652 }, 
+            "lng": { "type": "number", "example": 32.88408 } 
+          } 
+        },
+        "distance_km": { "type": "number", "example": 167 },
+        "crop_type": { "type": "string", "example": "Coffee" }
+      },
+      "relationships": {
+        "has_many": ["Order", "Delivery", "Application"]
+      }
+    },
+
+    "Driver": {
+      "figma_source": "Feedstock.pdf, Deliveries.pdf - Delivery Information section",
+      "description": "Transport driver for feedstock collection and biochar delivery",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "example": "Adam Driver" },
+        "contact": { "type": "string", "example": "+1 736 53 67" }
+      },
+      "relationships": {
+        "has_many": ["Feedstock", "Delivery"]
+      }
+    },
+
+    "Operator": {
+      "figma_source": "Production_Runs.pdf - Overview section",
+      "description": "Production/reactor operator",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "example": "Smooth Operator" }
+      },
+      "relationships": {
+        "has_many": ["ProductionRun", "Sample", "IncidentReport"]
+      }
+    },
+
+    "StorageLocation": {
+      "figma_source": "Multiple pages - Storage field",
+      "description": "Storage location for feedstock, biochar, and products",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "examples": ["Bin 7", "Feedstock Pile 002", "Biochar Pile 002", "Product Pile 002"] },
+        "type": { "type": "string", "enum": ["feedstock_bin", "feedstock_pile", "biochar_pile", "product_pile"] },
+        "facility_id": { "type": "string", "format": "uuid" }
+      },
+      "relationships": {
+        "belongs_to": ["Facility"],
+        "has_many": ["Feedstock", "ProductionRun", "BiocharProduct"]
+      }
+    },
+
+    "FeedstockType": {
+      "figma_source": "Feedstock.pdf, Production_Runs.pdf",
+      "description": "Type/category of biomass feedstock",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string", "examples": ["Mixed Wood Chips", "Hardwood", "Agricultural Residue"] }
+      },
+      "relationships": {
+        "has_many": ["Feedstock"]
+      }
+    },
+
+    "Formulation": {
+      "figma_source": "Biochar_Products.pdf, Orders.pdf",
+      "description": "Biochar product formulation/recipe",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "example": "BCF-01" },
+        "name": { "type": "string", "examples": ["Raw Biochar", "BCF-01 - Organic", "BCF"] },
+        "biochar_ratio": { "type": "number", "description": "Percentage of biochar in formulation" },
+        "compost_ratio": { "type": "number", "description": "Percentage of compost in formulation" }
+      },
+      "relationships": {
+        "has_many": ["BiocharProduct", "Order"]
+      }
+    },
+
+    "Feedstock": {
+      "figma_source": "Feedstock.pdf, Mobile_Data_Input.pdf",
+      "description": "Incoming biomass batch for pyrolysis processing",
+      "id_format": "FS-YYYY-NNN",
+      "id_example": "FS-2025-001",
+      "summary_metrics": {
+        "figma_source": "Feedstock.pdf - top cards",
+        "metrics": ["Incoming Feedstock (count)", "Feedstock Types (count)", "Total Feedstock (kg)", "Average Moisture (%)"]
+      },
+      "statuses": {
+        "values": ["Missing Data", "Complete"],
+        "workflow": "Missing Data → Complete"
+      },
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "pattern": "FS-\\d{4}-\\d{3}", "example": "FS-2025-001" },
+        "facility_id": { "type": "string", "format": "uuid" },
+        "date": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["missing_data", "complete"] },
+
+        "_section_delivery_information": "--- Delivery Information ---",
+        "collection_date": { "type": "string", "format": "date-time" },
+        "delivery_date": { "type": "string", "format": "date-time" },
+        "supplier_id": { "type": "string", "format": "uuid" },
+        "driver_id": { "type": "string", "format": "uuid" },
+        "vehicle_type": { "type": "string" },
+        "fuel_type": { "type": "string", "example": "Diesel" },
+        "fuel_consumed_liters": { "type": "number", "unit": "l", "example": 30 },
+        "transport_emissions_tco2e": { "type": "number", "unit": "tCO₂e", "example": 0.079, "calculated": true },
+
+        "_section_feedstock_details": "--- Feedstock Details ---",
+        "feedstock_type_id": { "type": "string", "format": "uuid" },
+        "weight_kg": { "type": "number", "unit": "kg", "example": 1500 },
+        "moisture_percent": { "type": "number", "unit": "%", "example": 18.5 },
+        "storage_location_id": { "type": "string", "format": "uuid" }
+      },
+      "relationships": {
+        "belongs_to": ["Facility", "Supplier", "Driver", "FeedstockType", "StorageLocation"],
+        "has_many": ["ProductionRun", "Documentation"]
+      }
+    },
+
+    "ProductionRun": {
+      "figma_source": "Production_Runs.pdf, Mobile_Data_Input.pdf",
+      "description": "Single pyrolysis production run converting feedstock to biochar",
+      "id_format": "PR-YYYY-NNN",
+      "id_example": "PR-2025-043",
+      "summary_metrics": {
+        "figma_source": "Production_Runs.pdf - top cards",
+        "metrics": ["Production Runs (count)", "Total Production (kg)", "Average Yield (%)", "Carbon Removal (t)"]
+      },
+      "statuses": {
+        "values": ["Running", "Complete"],
+        "workflow": "Running → Complete"
+      },
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "pattern": "PR-\\d{4}-\\d{3}", "example": "PR-2025-043" },
+        "facility_id": { "type": "string", "format": "uuid" },
+        "date": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["running", "complete"] },
+
+        "_section_overview": "--- Overview ---",
+        "start_time": { "type": "string", "format": "date-time" },
+        "reactor_id": { "type": "string", "format": "uuid" },
+        "process_type": { "type": "string", "example": "Raw Biochar" },
+        "operator_id": { "type": "string", "format": "uuid" },
+
+        "_section_feedstock_input": "--- Feedstock Input ---",
+        "feedstock_mix": { "type": "string", "example": "Mixed Wood Chips" },
+        "feedstock_storage_location_id": { "type": "string", "format": "uuid" },
+        "feedstock_amount_kg": { "type": "number", "unit": "kg", "example": 1800 },
+        "feeding_rate_kg_hr": { "type": "number", "unit": "kg/hr", "example": 100 },
+        "moisture_before_drying_percent": { "type": "number", "unit": "%", "nullable": true },
+        "moisture_after_drying_percent": { "type": "number", "unit": "%", "nullable": true },
+
+        "_section_biochar_output": "--- Biochar Output ---",
+        "biochar_amount_kg": { "type": "number", "unit": "kg", "example": 468 },
+        "yield_percent": { "type": "number", "unit": "%", "example": 26, "calculated": true },
+        "biochar_storage_location_id": { "type": "string", "format": "uuid" },
+        "linked_biochar_product_id": { "type": "string", "format": "uuid" },
+
+        "_section_processing_parameters": "--- Processing Parameters ---",
+        "diesel_operation_liters": { "type": "number", "unit": "l", "example": 50 },
+        "diesel_genset_liters": { "type": "number", "unit": "l", "example": 50 },
+        "preprocessing_fuel_liters": { "type": "number", "unit": "l", "example": 50 },
+        "electricity_kwh": { "type": "number", "unit": "kWh", "example": 198.0 },
+
+        "_section_emissions": "--- Emissions ---",
+        "emissions_from_fossils_kg": { "type": "number", "unit": "kg", "example": 50, "calculated": true },
+        "emissions_from_grid_kg": { "type": "number", "unit": "kg", "example": 50, "calculated": true },
+        "total_emissions_kg": { "type": "number", "unit": "kg", "example": 150, "calculated": true },
+
+        "_section_quenching": "--- Quenching ---",
+        "quenching_dry_weight_kg": { "type": "number", "unit": "kg", "example": 50 },
+        "quenching_wet_weight_kg": { "type": "number", "unit": "kg", "example": 50 }
+      },
+      "relationships": {
+        "belongs_to": ["Facility", "Reactor", "Operator", "StorageLocation"],
+        "has_many": ["Sample", "IncidentReport", "BiocharProduct", "Documentation"]
+      }
+    },
+
+    "Sample": {
+      "figma_source": "Production_Runs.pdf - Sampling section, Mobile_Data_Input.pdf",
+      "description": "Biochar quality sample taken during production run",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "production_run_id": { "type": "string", "format": "uuid" },
+        "sampling_time": { "type": "string", "format": "date-time" },
+        "operator_id": { "type": "string", "format": "uuid" },
+        "reactor_id": { "type": "string", "format": "uuid" },
+
+        "_section_sampling_details": "--- Sampling Details ---",
+        "weight_g": { "type": "number", "unit": "g", "example": 200 },
+        "volume_ml": { "type": "number", "unit": "ml", "example": 200 },
+        "temperature_c": { "type": "number", "unit": "°C", "example": 50 },
+        "moisture_percent": { "type": "number", "unit": "%", "example": 20 },
+        "ash_percent": { "type": "number", "unit": "%", "example": 7 },
+        "volatile_matter_percent": { "type": "number", "unit": "%", "example": 18 },
+        "fixed_carbon_percent": { "type": "number", "unit": "%", "example": 67 },
+
+        "notes": { "type": "string" }
+      },
+      "relationships": {
+        "belongs_to": ["ProductionRun", "Operator", "Reactor"],
+        "has_many": ["Documentation"]
+      }
+    },
+
+    "IncidentReport": {
+      "figma_source": "Production_Runs.pdf - Incident Reports section, Mobile_Data_Input.pdf",
+      "description": "Incident report during production",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "production_run_id": { "type": "string", "format": "uuid" },
+        "incident_time": { "type": "string", "format": "date-time" },
+        "operator_id": { "type": "string", "format": "uuid" },
+        "reactor_id": { "type": "string", "format": "uuid" },
+        "notes": { "type": "string", "example": "Machine running a bit hot" }
+      },
+      "relationships": {
+        "belongs_to": ["ProductionRun", "Operator", "Reactor"],
+        "has_many": ["Documentation"]
+      }
+    },
+
+    "BiocharProduct": {
+      "figma_source": "Biochar_Products.pdf, Mobile_Data_Input.pdf",
+      "description": "Finished biochar product batch (raw or formulated with compost)",
+      "id_format": "BP-YYYY-NNN",
+      "id_example": "BP-2025-043",
+      "summary_metrics": {
+        "figma_source": "Biochar_Products.pdf - top cards",
+        "metrics": ["Total Batches (count)", "Total Weight (kg)", "Formulations (count)", "Biochar Content (%)"]
+      },
+      "statuses": {
+        "values": ["Testing", "Ready"],
+        "workflow": "Testing → Ready"
+      },
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "pattern": "BP-\\d{4}-\\d{3}", "example": "BP-2025-043" },
+        "facility_id": { "type": "string", "format": "uuid" },
+        "production_date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["testing", "ready"] },
+
+        "_section_composition": "--- Composition Details ---",
+        "formulation_id": { "type": "string", "format": "uuid" },
+        "biochar_source_storage_id": { "type": "string", "format": "uuid" },
+        "linked_production_run_id": { "type": "string", "format": "uuid" },
+        "biochar_amount_kg": { "type": "number", "unit": "kg", "example": 3710 },
+        "biochar_per_m3_kg": { "type": "number", "unit": "kg/m³", "example": 3710 },
+        "compost_weight_kg": { "type": "number", "unit": "kg", "example": 790 },
+        "compost_per_m3_kg": { "type": "number", "unit": "kg/m³", "example": 3710 },
+
+        "_section_overall_product": "--- Overall Product Details ---",
+        "total_weight_kg": { "type": "number", "unit": "kg", "example": 4500 },
+        "total_volume_liters": { "type": "number", "unit": "l", "example": 4500 },
+        "density_kg_l": { "type": "number", "unit": "kg/l", "example": 1, "calculated": true },
+        "storage_location_id": { "type": "string", "format": "uuid" }
+      },
+      "relationships": {
+        "belongs_to": ["Facility", "Formulation", "ProductionRun", "StorageLocation"],
+        "has_many": ["Delivery", "Documentation"]
+      }
+    },
+
+    "Order": {
+      "figma_source": "Orders.pdf",
+      "description": "Customer order for biochar products",
+      "id_format": "OR-YYYY-NNN",
+      "id_example": "OR-2025-043",
+      "summary_metrics": {
+        "figma_source": "Orders.pdf - top cards",
+        "metrics": ["Total Orders (count)", "Total Quantity (t)", "Total Value (TZS)", "Completion Rate (%)"]
+      },
+      "statuses": {
+        "values": ["Ordered", "Processed"],
+        "workflow": "Ordered → Processed"
+      },
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "pattern": "OR-\\d{4}-\\d{3}", "example": "OR-2025-043" },
+        "facility_id": { "type": "string", "format": "uuid" },
+        "order_date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["ordered", "processed"] },
+
+        "_section_customer": "--- Customer Details ---",
+        "customer_id": { "type": "string", "format": "uuid" },
+        "invoice_number": { "type": "string", "example": "24-0009" },
+
+        "_section_order_details": "--- Order Details ---",
+        "formulation_id": { "type": "string", "format": "uuid" },
+        "quantity_tons": { "type": "number", "unit": "t", "example": 5.3 },
+        "quantity_m3": { "type": "number", "unit": "m³", "example": 17.667 },
+        "biochar_tons": { "type": "number", "unit": "t", "example": 3.71 },
+        "packaging": { "type": "string", "enum": ["loose", "bagged"], "example": "Loose" },
+        "value_tzs": { "type": "number", "unit": "TZS", "example": 3540000 },
+
+        "_section_application_details": "--- Application Details ---",
+        "application_status": { "type": "string", "example": "In preparation" },
+        "bulk_density_kg_l": { "type": "number", "unit": "kg/l", "example": 0.30 },
+        "c_sink_type": { "type": "string", "example": "Geo localised C Sink" },
+        "compost_per_m3_percent": { "type": "number", "unit": "%", "example": 30 }
+      },
+      "relationships": {
+        "belongs_to": ["Facility", "Customer", "Formulation"],
+        "has_many": ["Delivery", "Documentation"]
+      }
+    },
+
+    "Delivery": {
+      "figma_source": "Deliveries.pdf",
+      "description": "Delivery of biochar products to customer",
+      "id_format": "DL-YYYY-NNN",
+      "id_example": "DL-2025-043",
+      "summary_metrics": {
+        "figma_source": "Deliveries.pdf - top cards",
+        "metrics": ["Total Deliveries (count)", "Total Quantity (t)", "Total Customers (count)", "Total Value (TZS)"]
+      },
+      "statuses": {
+        "values": ["Processing", "Delivered"],
+        "workflow": "Processing → Delivered"
+      },
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "pattern": "DL-\\d{4}-\\d{3}", "example": "DL-2025-043" },
+        "facility_id": { "type": "string", "format": "uuid" },
+        "delivery_date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["processing", "delivered"] },
+
+        "_section_order_link": "--- Linked Order ---",
+        "order_id": { "type": "string", "format": "uuid" },
+
+        "_section_product_batch": "--- Product Batch ---",
+        "biochar_product_id": { "type": "string", "format": "uuid" },
+        "storage_location_id": { "type": "string", "format": "uuid" },
+        "quantity_tons": { "type": "number", "unit": "t", "example": 5.3 },
+        "quantity_m3": { "type": "number", "unit": "m³", "example": 17.667 },
+        "biochar_tons": { "type": "number", "unit": "t", "example": 3.71 },
+        "fixed_carbon_percent": { "type": "number", "unit": "%", "example": 46 },
+
+        "_section_delivery_details": "--- Delivery Details ---",
+        "driver_id": { "type": "string", "format": "uuid" },
+        "vehicle_type": { "type": "string", "example": "Truck" },
+        "fuel_type": { "type": "string", "example": "Diesel" },
+        "fuel_consumed_liters": { "type": "number", "unit": "l", "example": 30 },
+        "distance_km": { "type": "number", "unit": "km", "example": 123 },
+        "emissions_tco2e": { "type": "number", "unit": "tCO₂e", "example": 0.079, "calculated": true }
+      },
+      "relationships": {
+        "belongs_to": ["Facility", "Order", "BiocharProduct", "Driver", "StorageLocation"],
+        "has_many": ["Application", "Documentation"]
+      }
+    },
+
+    "Application": {
+      "figma_source": "Application.pdf",
+      "description": "Field application of biochar to agricultural land",
+      "id_format": "AP-YYYY-NNN",
+      "id_example": "AP-2025-043",
+      "summary_metrics": {
+        "figma_source": "Application.pdf - top cards",
+        "metrics": ["Total Applications (count)", "Area Applied (ha)", "BCF Applied (t)", "Carbon Sequestered (tCO₂e)"]
+      },
+      "statuses": {
+        "values": ["Delivered", "Applied"],
+        "workflow": "Delivered → Applied"
+      },
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "pattern": "AP-\\d{4}-\\d{3}", "example": "AP-2025-043" },
+        "facility_id": { "type": "string", "format": "uuid" },
+        "application_date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["delivered", "applied"] },
+
+        "_section_links": "--- Linked Records ---",
+        "delivery_id": { "type": "string", "format": "uuid" },
+
+        "_section_application_details": "--- Application Details ---",
+        "biochar_applied_tons": { "type": "number", "unit": "t", "example": 2.5 },
+        "biochar_dry_matter_tons": { "type": "number", "unit": "t", "example": 0.5 },
+        "total_applied_tons": { "type": "number", "unit": "t", "example": 3.0, "calculated": true },
+        "gps_coordinates": { 
+          "type": "object", 
+          "properties": { 
+            "lat": { "type": "number", "example": -9.01652 }, 
+            "lng": { "type": "number", "example": 32.88408 } 
+          } 
+        },
+        "field_size_ha": { "type": "number", "unit": "ha", "example": 372 },
+        "application_method": { "type": "string", "enum": ["manual", "mechanical"], "example": "Manual" }
+      },
+      "relationships": {
+        "belongs_to": ["Facility", "Delivery"],
+        "has_many": ["CreditBatch", "Documentation"]
+      }
+    },
+
+    "CreditBatch": {
+      "figma_source": "Certification.pdf",
+      "description": "Carbon credit batch for certification with registry",
+      "id_format": "CB-YYYY-NNN",
+      "id_example": "CB-2025-043",
+      "summary_metrics": {
+        "figma_source": "Certification.pdf - top cards",
+        "metrics": ["Total Credit Batches (count)", "Total Carbon Credits (tCO₂e)", "Issued Credits (count)", "Total Revenue (TZS)"]
+      },
+      "statuses": {
+        "values": ["Pending", "Verified", "Issued"],
+        "workflow": "Pending → Verified → Issued"
+      },
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string", "pattern": "CB-\\d{4}-\\d{3}", "example": "CB-2025-043" },
+        "facility_id": { "type": "string", "format": "uuid" },
+        "date": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["pending", "verified", "issued"] },
+
+        "_section_overview": "--- Overview ---",
+        "reactor_id": { "type": "string", "format": "uuid" },
+        "start_date": { "type": "string", "format": "date-time" },
+        "end_date": { "type": "string", "format": "date-time" },
+        "certifier": { "type": "string", "example": "Isometric" },
+        "registry": { "type": "string", "examples": ["Isometric", "Kanji Lalji"] },
+
+        "_section_credits": "--- Credit Details ---",
+        "batches_count": { "type": "integer", "example": 2 },
+        "weight_tons": { "type": "number", "unit": "t", "example": 5.3 },
+        "credits_tco2e": { "type": "number", "unit": "tCO₂e", "example": 17.667 },
+        "value_tzs": { "type": "number", "unit": "TZS", "example": 3540000 }
+      },
+      "relationships": {
+        "belongs_to": ["Facility", "Reactor"],
+        "has_many": ["Application", "LabAnalysis", "Documentation"],
+        "many_to_many": ["Application"]
+      },
+      "junction_tables": {
+        "CreditBatchApplication": {
+          "description": "Links credit batches to multiple applications",
+          "fields": {
+            "credit_batch_id": { "type": "string", "format": "uuid" },
+            "application_id": { "type": "string", "format": "uuid" }
+          },
+          "figma_note": "Shown as 'Linked Application Batches' with multiple AP-2025-023 references"
+        }
+      }
+    },
+
+    "LabAnalysis": {
+      "figma_source": "Certification.pdf - Lab Analysis section",
+      "description": "Laboratory analysis report for credit batch verification",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "credit_batch_id": { "type": "string", "format": "uuid" },
+        "analysis_date": { "type": "string", "format": "date-time" },
+        "analyst_name": { "type": "string", "example": "John Doe" },
+        "report_file": { "type": "string", "format": "uri", "example": "Lab report 2025-11-23.pdf" },
+        "notes": { "type": "string" }
+      },
+      "relationships": {
+        "belongs_to": ["CreditBatch"]
+      }
+    },
+
+    "Documentation": {
+      "figma_source": "All entity detail pages - Documentation section",
+      "description": "Generic documentation/notes attached to any entity",
+      "fields": {
+        "id": { "type": "string", "format": "uuid" },
+        "entity_type": { "type": "string", "description": "Polymorphic reference to parent entity type" },
+        "entity_id": { "type": "string", "format": "uuid" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string", "example": "John Doe" },
+        "notes": { "type": "string", "example": "Machine running a bit hot" },
+        "attachments": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "file_url": { "type": "string", "format": "uri" },
+              "file_type": { "type": "string", "enum": ["photo", "video", "pdf"] }
+            }
+          }
+        }
+      },
+      "relationships": {
+        "belongs_to": ["Feedstock", "ProductionRun", "Sample", "IncidentReport", "BiocharProduct", "Order", "Delivery", "Application", "CreditBatch"]
+      }
+    }
+  },
+
+  "dashboard_aggregations": {
+    "figma_source": "Dashboard.pdf",
+    "description": "Aggregated metrics shown on main dashboard",
+    "top_level_metrics": {
+      "production_runs_active": { "type": "integer", "example": 6 },
+      "total_biochar_produced_kg": { "type": "number", "example": 4267 },
+      "carbonized_biochar_percent": { "type": "number", "example": 0.0, "note": "Fixed carbon content" },
+      "carbon_offset_tco2e": { "type": "number", "example": null, "note": "Shows as NaN in mockup" }
+    },
+    "charts": {
+      "processed_biomass_produced_biochar": {
+        "type": "time_series",
+        "x_axis": "date",
+        "y_axes": ["biochar_cumulative_kg", "biomass_kg", "biomass_cumulative_kg", "dry_biochar_kg"]
+      },
+      "quality_data": {
+        "type": "time_series",
+        "x_axis": "date",
+        "y_axes": ["density_biochar_kg_m3", "density_biomass_kg_m3", "fixed_carbon_percent", "moisture_after_dryer_percent", "moisture_biomass_percent", "temperature_c", "yield_percent"]
+      }
+    },
+    "quick_lists": {
+      "incoming_feedstock": { "entity": "Feedstock", "limit": 3 },
+      "production_runs": { "entity": "ProductionRun", "limit": 3 },
+      "biochar_products": { "entity": "BiocharProduct", "limit": 3 },
+      "credit_batches": { "entity": "CreditBatch", "limit": 3 }
+    }
+  },
+
+  "global_filters": {
+    "figma_source": "All list pages - top filter bar",
+    "description": "Global filters available across all list views",
+    "filters": {
+      "site": { "type": "Facility", "example": "Mafinga" },
+      "reactor": { "type": "Reactor", "example": "All Reactors" },
+      "time_period": { "type": "string", "example": "This Month" }
+    }
+  },
+
+  "mobile_data_input": {
+    "figma_source": "Mobile_Data_Input.pdf",
+    "description": "Mobile-optimized quick entry forms",
+    "incomplete_data_alerts": {
+      "description": "Shows count and list of incomplete data entries",
+      "example": "3 incomplete entries"
+    },
+    "quick_entry_forms": [
+      "Feedstock",
+      "ProductionRun", 
+      "Sample",
+      "IncidentReport",
+      "BiocharProduct"
+    ]
+  }
+}
