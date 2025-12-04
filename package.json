@@ -11,7 +11,7 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:clean": "docker compose down -v",
-    "db:wait": "tsx scripts/wait-for-db.ts",
+    "db:wait": "tsx src/lib/cli/wait-for-db.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
