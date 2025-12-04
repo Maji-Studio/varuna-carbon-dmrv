@@ -9,6 +9,7 @@ This document describes the database schema for the biochar production Digital M
 - **Align with Figma designs** (see `dark-earth-carbon-schema.json`)
 - **Full Isometric Protocol v1.2 compliance** for carbon credit certification
 - **Support Biochar Storage in Soil Environments Module v1.2**
+- **Support Transportation Emissions Accounting Module v1.1**
 
 ## Schema File Structure
 
@@ -23,10 +24,10 @@ src/db/
     ├── facilities.ts     # Facilities, reactors, storage locations
     ├── parties.ts        # Suppliers, customers, drivers, operators
     ├── feedstock.ts      # Feedstock types and batches
-    ├── production.ts     # Production runs, samples, incidents
+    ├── production.ts     # Production runs, samples, incidents, readings
     ├── products.ts       # Formulations, biochar products
-    ├── logistics.ts      # Orders, deliveries
-    ├── application.ts    # Field applications (soil storage)
+    ├── logistics.ts      # Orders, deliveries, transport legs
+    ├── application.ts    # Field applications, soil temperature
     ├── credits.ts        # Credit batches, lab analyses
     └── documentation.ts  # Polymorphic attachments
 ```
@@ -42,10 +43,16 @@ src/db/
 │      └──────────────┴──────────────┴────────────┴─────────┴───────────┘      │
 │                                      ↓                                       │
 │                              CreditBatch                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                           MONITORING & EMISSIONS                             │
+│                                                                              │
+│  ProductionRun ← ProductionRunReadings (time-series monitoring)             │
+│  Application ← SoilTemperatureMeasurements (durability baseline)            │
+│  * ← TransportLegs (emissions tracking for any entity)                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Tables (22 total)
+## Tables (26 total)
 
 ### Core Infrastructure
 
@@ -82,9 +89,17 @@ src/db/
 
 | Table | Description | Isometric Requirement |
 |-------|-------------|----------------------|
-| `samples` | Biochar quality samples | Section 8.3 - C_biochar calculation |
+| `samples` | Biochar quality samples | Section 8.3, Table 2 - Full characterization |
 | `incident_reports` | Production issues | Section 5 - Adaptive management |
-| `lab_analyses` | External lab reports | Section 8.3 - Sampling requirements |
+| `lab_analyses` | External lab reports | Section 8.3 - ISO 17025 compliance |
+
+### Monitoring & Emissions (NEW)
+
+| Table | Description | Isometric Requirement |
+|-------|-------------|----------------------|
+| `production_run_readings` | Time-series reactor monitoring | Appendix II - 5-min temp, 1-min pressure/emissions |
+| `soil_temperature_measurements` | Durability baseline data | G-QMBJ-0 - 10+ measurements per site-month |
+| `transport_legs` | Transportation emissions | Transportation Module v1.1 |
 
 ### Supporting
 
@@ -96,55 +111,183 @@ src/db/
 
 ## Isometric Protocol Compliance Fields
 
-### Production Run - Pyrolysis Monitoring (Section 9)
+### Samples - Full Biochar Characterization (Table 2)
 
 ```
-pyrolysis_temperature_c     # Continuous monitoring required
-residence_time_minutes      # Process parameter
-diesel_operation_liters     # Energy accounting
+# Carbon Measurements
+total_carbon_percent           # Required - ISO 29541/ASTM D5373
+inorganic_carbon_percent       # Required - ISO 16948/ASTM D4373
+organic_carbon_percent         # Calculated: Total C - Inorganic C
+
+# Elemental Analysis
+hydrogen_content_percent       # Required - ISO 29541/ASTM D5373
+oxygen_content_percent         # Required - ISO 16948/DIN 51733
+nitrogen_percent               # Required - ISO 29541/ASTM D5373
+sulfur_percent                 # Required - ISO 15178/DIN 51724
+
+# Stability Ratios (CRITICAL FOR ELIGIBILITY)
+h_corg_molar_ratio             # Required, threshold < 0.5
+o_corg_molar_ratio             # Required, threshold < 0.2
+
+# Proximate Analysis
+moisture_percent               # Required - ISO 18134/ASTM D1762
+ash_percent                    # Required - ISO 18122/ISO 1171
+volatile_matter_percent        # Recommended
+fixed_carbon_percent           # Recommended
+
+# Physical Properties
+ph                             # Required - ISO 10390
+salt_content_g_per_kg          # Required - ISO 10390
+bulk_density_kg_per_m3         # Required (<3mm) - ISO 17828
+water_holding_capacity_percent # Recommended - ISO 14238
+
+# Heavy Metals (ALL REQUIRED with thresholds)
+lead_mg_per_kg                 # ≤300 mg/kg DM
+cadmium_mg_per_kg              # ≤5 mg/kg DM
+copper_mg_per_kg               # ≤200 mg/kg DM
+nickel_mg_per_kg               # ≤100 mg/kg DM
+mercury_mg_per_kg              # ≤2 mg/kg DM
+zinc_mg_per_kg                 # ≤1000 mg/kg DM
+chromium_mg_per_kg             # ≤200 mg/kg DM
+arsenic_mg_per_kg              # ≤20 mg/kg DM
+
+# Contaminants (ALL REQUIRED)
+pahs_efsa8_mg_per_kg           # ≤1 g/t DM (EFSA 8)
+pahs_epa16_mg_per_kg           # Declaration (EPA 16)
+pcdd_f_ng_per_kg               # ≤20 ng/kg DM (17 PCDD/F)
+pcb_mg_per_kg                  # ≤0.2 mg/kg DM (12 WHO PCB)
+
+# Nutrients Declaration (REQUIRED)
+phosphorus_g_per_kg
+potassium_g_per_kg
+magnesium_g_per_kg
+calcium_g_per_kg
+iron_g_per_kg
+
+# 1000-Year Durability (Optional - Table 3)
+random_reflectance_r0          # >2% for inertinite (ISO 7404-5)
+residual_organic_carbon_percent # Rock-Eval/Hawk analysis
+
+# Lab Compliance
+lab_name
+lab_accreditation_number       # ISO 17025
+analysis_method
+```
+
+### Production Run Readings - Continuous Monitoring (Appendix II)
+
+```
+timestamp                      # Recording time
+temperature_c                  # 5-minute intervals required
+pressure_bar                   # 1-minute intervals (if >0.5 bar)
+ch4_composition                # 1-minute intervals (Option 1)
+n2o_composition                # 1-minute intervals (Option 1)
+co_composition                 # 1-minute intervals (Option 1)
+co2_composition                # 1-minute intervals (Option 1)
+gas_flow_rate                  # 1-minute intervals (Option 1)
+```
+
+### Production Run - Energy Accounting
+
+```
+pyrolysis_temperature_c        # Summary value
+residence_time_minutes         # Process parameter
+diesel_operation_liters        # Energy accounting
 diesel_genset_liters
 preprocessing_fuel_liters
 electricity_kwh
-emissions_from_fossils_kg   # Calculated
-emissions_from_grid_kg      # Calculated
-total_emissions_kg          # Calculated
+emissions_from_fossils_kg      # Calculated
+emissions_from_grid_kg         # Calculated
+total_emissions_kg             # Calculated
 ```
 
-### Samples - Biochar Quality (Section 8.3)
+### Application - Durability Calculation (Section 5)
 
 ```
-carbon_content_percent      # C_biochar (ASTM D5291)
-hydrogen_content_percent    # For H:C ratio
-oxygen_content_percent      # For O:C ratio
-ash_percent
-volatile_matter_percent
-fixed_carbon_percent
-moisture_percent
-```
-
-Supports both sampling methods:
-- **Method A**: Sample every production batch
-- **Method B**: Sample every 10th batch (after 30 initial samples)
-
-### Application - Soil Storage (Module v1.2)
-
-```
-gps_lat                     # GPS required for soil storage
+# Field Details
+gps_lat                        # GPS required for soil storage
 gps_lng
 field_size_ha
-application_method          # manual/mechanical
+application_method             # manual/mechanical
+field_identifier               # Field name/parcel ID
+gis_boundary_reference         # Link to GIS layer
+
+# Durability (Isometric Section 5.1)
+durability_option              # '200_year' | '1000_year'
+soil_temperature_c             # Annual average (required for 200-year)
+soil_temperature_source        # 'baseline' | 'global_database'
+f_durable_calculated           # Calculated durability fraction
+co2e_stored_tonnes             # Final CO2e removal
+
+# Application Quantities
 biochar_applied_tons
 biochar_dry_matter_tons
+total_applied_tons             # Calculated
+```
+
+### Soil Temperature Measurements (G-QMBJ-0)
+
+```
+measurement_date               # Date of measurement
+temperature_c                  # Temperature reading
+measurement_method             # ISO 4974 or equivalent
+measurement_depth_cm           # Depth of measurement
+measurement_lat                # Location within field
+measurement_lng
+```
+
+Minimum 10 measurements per site-month required for baseline.
+
+### Transport Legs - Emissions Tracking (Module v1.1)
+
+```
+# Entity Reference (Polymorphic)
+entity_type                    # feedstock | biochar | sample | delivery
+entity_id
+
+# Route
+origin_lat, origin_lng, origin_name
+destination_lat, destination_lng, destination_name
+distance_km
+
+# Transport Details
+transport_method               # road | rail | ship | pipeline | aircraft
+vehicle_type                   # e.g., "Class 8 heavy-duty truck"
+vehicle_model_year
+
+# Energy Usage Method (Preferred - Section 3.2)
+fuel_type
+fuel_consumed_liters
+electricity_kwh
+
+# Distance-Based Method (Section 3.3)
+load_weight_tonnes
+load_capacity_utilization_percent
+
+# Emissions Calculation
+calculation_method             # 'energy_usage' | 'distance_based'
+emission_factor_used
+emission_factor_source
+emissions_co2e_kg
+
+# Book and Claim Units (Section 4)
+bcu_used
+bcu_provider
+bcu_certification_ref
+
+# Documentation
+bill_of_lading
+weigh_scale_ticket_ref
 ```
 
 ### Credit Batch - Verification
 
 ```
-certifier                   # "Isometric"
+certifier                      # "Isometric"
 registry
-credits_tco2e               # Net CO2e removal
-buffer_pool_percent         # Risk-based (2-20%)
-status                      # pending → verified → issued
+credits_tco2e                  # Net CO2e removal
+buffer_pool_percent            # Risk-based (2-20%)
+status                         # pending → verified → issued
 ```
 
 ## Enums
@@ -171,6 +314,15 @@ status                      # pending → verified → issued
 | `documentation_type` | photo, video, pdf | documentation |
 | `documentation_entity_type` | feedstock, production_run, sample, incident_report, biochar_product, order, delivery, application, credit_batch | documentation |
 
+### Isometric Protocol Enums (NEW)
+
+| Enum | Values | Used By | Protocol Reference |
+|------|--------|---------|-------------------|
+| `durability_option` | 200_year, 1000_year | applications | Section 5.1 |
+| `transport_entity_type` | feedstock, biochar, sample, delivery | transport_legs | Transportation Module |
+| `transport_method` | road, rail, ship, pipeline, aircraft | transport_legs | Transportation Module |
+| `emissions_calculation_method` | energy_usage, distance_based | transport_legs | Section 3.2, 3.3 |
+
 ## Conventions
 
 ### IDs
@@ -188,6 +340,11 @@ status                      # pending → verified → issued
 ### GPS Coordinates
 - Stored as separate `gps_lat` and `gps_lng` real columns
 - No PostGIS dependency (simpler for now)
+
+### Isometric Thresholds
+- Heavy metal thresholds in mg/kg DM (dry matter)
+- Contaminant thresholds vary by compound (see Table 2)
+- H:Corg < 0.5 and O:Corg < 0.2 required for eligibility
 
 ## Relationships
 
@@ -212,9 +369,19 @@ Uses `credit_batch_applications` junction table with composite primary key:
 primaryKey({ columns: [table.creditBatchId, table.applicationId] })
 ```
 
+### One-to-Many (Time Series)
+
+```typescript
+// Production Run has many Readings
+productionRuns → productionRunReadings
+
+// Application has many Soil Temperature Measurements
+applications → soilTemperatureMeasurements
+```
+
 ## Usage Examples
 
-### Query Production Run with Relations
+### Query Production Run with Readings
 
 ```typescript
 import { db } from '@/db';
@@ -228,22 +395,53 @@ const run = await db.query.productionRuns.findFirst({
     operator: true,
     samples: true,
     incidentReports: true,
+    readings: true, // Time-series monitoring data
   },
 });
 ```
 
-### Insert with Enum
+### Query Application with Durability Data
 
 ```typescript
-import { feedstocks, feedstockStatus } from '@/db/schema';
+import { db } from '@/db';
+import { applications } from '@/db/schema';
 
-await db.insert(feedstocks).values({
-  code: 'FS-2025-001',
-  facilityId: facilityUuid,
-  date: '2025-01-15',
-  status: 'missing_data',
-  weightKg: 1500,
-  moisturePercent: 18.5,
+const app = await db.query.applications.findFirst({
+  where: eq(applications.code, 'AP-2025-001'),
+  with: {
+    facility: true,
+    delivery: true,
+    soilTemperatureMeasurements: true, // Baseline measurements
+  },
+});
+```
+
+### Insert Sample with Full Characterization
+
+```typescript
+import { samples } from '@/db/schema';
+
+await db.insert(samples).values({
+  productionRunId: runUuid,
+  samplingTime: new Date(),
+
+  // Carbon
+  totalCarbonPercent: 75.2,
+  inorganicCarbonPercent: 1.3,
+  organicCarbonPercent: 73.9,
+
+  // Stability ratios
+  hCorgMolarRatio: 0.32, // Must be < 0.5
+  oCorgMolarRatio: 0.08, // Must be < 0.2
+
+  // Heavy metals
+  leadMgPerKg: 15.2,     // Threshold: ≤300
+  cadmiumMgPerKg: 0.3,   // Threshold: ≤5
+
+  // Lab info
+  labName: 'AccreditedLab Inc.',
+  labAccreditationNumber: 'ISO17025-12345',
+  analysisMethod: 'ASTM D5291',
 });
 ```
 
@@ -261,4 +459,5 @@ pnpm db:studio     # Visual DB management
 
 - [Isometric Biochar Protocol v1.2](https://registry.isometric.com/protocol/biochar/1.2)
 - [Biochar Storage in Soil Environments Module v1.2](https://registry.isometric.com/module/biochar-storage-soil-environments/1.2)
+- [Transportation Emissions Accounting Module v1.1](https://registry.isometric.com/module/transportation/1.1)
 - [Figma Schema](./dark-earth-carbon-schema.json)

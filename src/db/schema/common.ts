@@ -73,3 +73,38 @@ export const documentationEntityType = pgEnum('documentation_entity_type', [
   'application',
   'credit_batch',
 ]);
+
+// ============================================
+// Isometric Protocol Enums
+// ============================================
+
+// Durability crediting options (Biochar Storage in Soil Environments Module v1.2)
+// Section 5.1: Option 1 = 200-year, Option 2 = 1000-year
+export const durabilityOption = pgEnum('durability_option', [
+  '200_year', // Based on H:Corg ratio + soil temperature (Woolf et al., 2021)
+  '1000_year', // Based on random reflectance R0 (Sanei et al., 2024)
+]);
+
+// Transport entity types for polymorphic transport tracking
+export const transportEntityType = pgEnum('transport_entity_type', [
+  'feedstock',
+  'biochar',
+  'sample',
+  'delivery',
+]);
+
+// Transport methods (Transportation Emissions Accounting Module v1.1)
+export const transportMethod = pgEnum('transport_method', [
+  'road',
+  'rail',
+  'ship',
+  'pipeline',
+  'aircraft',
+]);
+
+// Emissions calculation method (Transportation Emissions Accounting Module v1.1)
+// Section 3.2: Energy Usage Method (preferred), Section 3.3: Distance-Based Method
+export const emissionsCalculationMethod = pgEnum('emissions_calculation_method', [
+  'energy_usage', // Uses fuel consumption + emission factors
+  'distance_based', // Uses distance + weight + emission factors
+]);

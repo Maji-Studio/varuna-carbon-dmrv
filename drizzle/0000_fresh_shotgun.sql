@@ -5,11 +5,15 @@ CREATE TYPE "public"."credit_batch_status" AS ENUM('pending', 'verified', 'issue
 CREATE TYPE "public"."delivery_status" AS ENUM('processing', 'delivered');--> statement-breakpoint
 CREATE TYPE "public"."documentation_entity_type" AS ENUM('feedstock', 'production_run', 'sample', 'incident_report', 'biochar_product', 'order', 'delivery', 'application', 'credit_batch');--> statement-breakpoint
 CREATE TYPE "public"."documentation_type" AS ENUM('photo', 'video', 'pdf');--> statement-breakpoint
+CREATE TYPE "public"."durability_option" AS ENUM('200_year', '1000_year');--> statement-breakpoint
+CREATE TYPE "public"."emissions_calculation_method" AS ENUM('energy_usage', 'distance_based');--> statement-breakpoint
 CREATE TYPE "public"."feedstock_status" AS ENUM('missing_data', 'complete');--> statement-breakpoint
 CREATE TYPE "public"."order_status" AS ENUM('ordered', 'processed');--> statement-breakpoint
 CREATE TYPE "public"."packaging_type" AS ENUM('loose', 'bagged');--> statement-breakpoint
 CREATE TYPE "public"."production_run_status" AS ENUM('running', 'complete');--> statement-breakpoint
 CREATE TYPE "public"."storage_location_type" AS ENUM('feedstock_bin', 'feedstock_pile', 'biochar_pile', 'product_pile');--> statement-breakpoint
+CREATE TYPE "public"."transport_entity_type" AS ENUM('feedstock', 'biochar', 'sample', 'delivery');--> statement-breakpoint
+CREATE TYPE "public"."transport_method" AS ENUM('road', 'rail', 'ship', 'pipeline', 'aircraft');--> statement-breakpoint
 CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
@@ -128,6 +132,20 @@ CREATE TABLE "incident_reports" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "production_run_readings" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"production_run_id" uuid NOT NULL,
+	"timestamp" timestamp NOT NULL,
+	"temperature_c" real,
+	"pressure_bar" real,
+	"ch4_composition" real,
+	"n2o_composition" real,
+	"co_composition" real,
+	"co2_composition" real,
+	"gas_flow_rate" real,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "production_runs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"code" text NOT NULL,
@@ -173,13 +191,46 @@ CREATE TABLE "samples" (
 	"weight_g" real,
 	"volume_ml" real,
 	"temperature_c" real,
+	"total_carbon_percent" real,
+	"inorganic_carbon_percent" real,
+	"organic_carbon_percent" real,
 	"carbon_content_percent" real,
 	"hydrogen_content_percent" real,
 	"oxygen_content_percent" real,
+	"nitrogen_percent" real,
+	"sulfur_percent" real,
+	"h_corg_molar_ratio" real,
+	"o_corg_molar_ratio" real,
 	"moisture_percent" real,
 	"ash_percent" real,
 	"volatile_matter_percent" real,
 	"fixed_carbon_percent" real,
+	"ph" real,
+	"salt_content_g_per_kg" real,
+	"bulk_density_kg_per_m3" real,
+	"water_holding_capacity_percent" real,
+	"lead_mg_per_kg" real,
+	"cadmium_mg_per_kg" real,
+	"copper_mg_per_kg" real,
+	"nickel_mg_per_kg" real,
+	"mercury_mg_per_kg" real,
+	"zinc_mg_per_kg" real,
+	"chromium_mg_per_kg" real,
+	"arsenic_mg_per_kg" real,
+	"pahs_efsa8_mg_per_kg" real,
+	"pahs_epa16_mg_per_kg" real,
+	"pcdd_f_ng_per_kg" real,
+	"pcb_mg_per_kg" real,
+	"phosphorus_g_per_kg" real,
+	"potassium_g_per_kg" real,
+	"magnesium_g_per_kg" real,
+	"calcium_g_per_kg" real,
+	"iron_g_per_kg" real,
+	"random_reflectance_r0" real,
+	"residual_organic_carbon_percent" real,
+	"lab_name" text,
+	"lab_accreditation_number" text,
+	"analysis_method" text,
 	"notes" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
@@ -265,6 +316,38 @@ CREATE TABLE "orders" (
 	CONSTRAINT "orders_code_unique" UNIQUE("code")
 );
 --> statement-breakpoint
+CREATE TABLE "transport_legs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"entity_type" "transport_entity_type" NOT NULL,
+	"entity_id" uuid NOT NULL,
+	"origin_lat" real,
+	"origin_lng" real,
+	"origin_name" text,
+	"destination_lat" real,
+	"destination_lng" real,
+	"destination_name" text,
+	"distance_km" real,
+	"transport_method" "transport_method",
+	"vehicle_type" text,
+	"vehicle_model_year" text,
+	"fuel_type" text,
+	"fuel_consumed_liters" real,
+	"electricity_kwh" real,
+	"load_weight_tonnes" real,
+	"load_capacity_utilization_percent" real,
+	"calculation_method" "emissions_calculation_method",
+	"emission_factor_used" real,
+	"emission_factor_source" text,
+	"emissions_co2e_kg" real,
+	"bcu_used" real,
+	"bcu_provider" text,
+	"bcu_certification_ref" text,
+	"bill_of_lading" text,
+	"weigh_scale_ticket_ref" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "applications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"code" text NOT NULL,
@@ -279,9 +362,29 @@ CREATE TABLE "applications" (
 	"gps_lng" real,
 	"field_size_ha" real,
 	"application_method" "application_method",
+	"field_identifier" text,
+	"gis_boundary_reference" text,
+	"durability_option" "durability_option",
+	"soil_temperature_c" real,
+	"soil_temperature_source" text,
+	"f_durable_calculated" real,
+	"co2e_stored_tonnes" real,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "applications_code_unique" UNIQUE("code")
+);
+--> statement-breakpoint
+CREATE TABLE "soil_temperature_measurements" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"application_id" uuid NOT NULL,
+	"measurement_date" date NOT NULL,
+	"temperature_c" real NOT NULL,
+	"measurement_method" text,
+	"measurement_depth_cm" real,
+	"measurement_lat" real,
+	"measurement_lng" real,
+	"notes" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "credit_batch_applications" (
@@ -344,6 +447,7 @@ ALTER TABLE "feedstocks" ADD CONSTRAINT "feedstocks_storage_location_id_storage_
 ALTER TABLE "incident_reports" ADD CONSTRAINT "incident_reports_production_run_id_production_runs_id_fk" FOREIGN KEY ("production_run_id") REFERENCES "public"."production_runs"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "incident_reports" ADD CONSTRAINT "incident_reports_operator_id_operators_id_fk" FOREIGN KEY ("operator_id") REFERENCES "public"."operators"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "incident_reports" ADD CONSTRAINT "incident_reports_reactor_id_reactors_id_fk" FOREIGN KEY ("reactor_id") REFERENCES "public"."reactors"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "production_run_readings" ADD CONSTRAINT "production_run_readings_production_run_id_production_runs_id_fk" FOREIGN KEY ("production_run_id") REFERENCES "public"."production_runs"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "production_runs" ADD CONSTRAINT "production_runs_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "production_runs" ADD CONSTRAINT "production_runs_reactor_id_reactors_id_fk" FOREIGN KEY ("reactor_id") REFERENCES "public"."reactors"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "production_runs" ADD CONSTRAINT "production_runs_operator_id_operators_id_fk" FOREIGN KEY ("operator_id") REFERENCES "public"."operators"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -367,6 +471,7 @@ ALTER TABLE "orders" ADD CONSTRAINT "orders_customer_id_customers_id_fk" FOREIGN
 ALTER TABLE "orders" ADD CONSTRAINT "orders_formulation_id_formulations_id_fk" FOREIGN KEY ("formulation_id") REFERENCES "public"."formulations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "applications" ADD CONSTRAINT "applications_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "applications" ADD CONSTRAINT "applications_delivery_id_deliveries_id_fk" FOREIGN KEY ("delivery_id") REFERENCES "public"."deliveries"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "soil_temperature_measurements" ADD CONSTRAINT "soil_temperature_measurements_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "public"."applications"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "credit_batch_applications" ADD CONSTRAINT "credit_batch_applications_credit_batch_id_credit_batches_id_fk" FOREIGN KEY ("credit_batch_id") REFERENCES "public"."credit_batches"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "credit_batch_applications" ADD CONSTRAINT "credit_batch_applications_application_id_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "public"."applications"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "credit_batches" ADD CONSTRAINT "credit_batches_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

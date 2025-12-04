@@ -1,6 +1,13 @@
 import { pgTable, text, timestamp, uuid, real } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { orderStatus, deliveryStatus, packagingType } from './common';
+import {
+  orderStatus,
+  deliveryStatus,
+  packagingType,
+  transportEntityType,
+  transportMethod,
+  emissionsCalculationMethod,
+} from './common';
 import { facilities, storageLocations } from './facilities';
 import { customers, drivers } from './parties';
 import { formulations, biocharProducts } from './products';
@@ -77,6 +84,61 @@ export const deliveries = pgTable('deliveries', {
   distanceKm: real('distance_km'),
   // Isometric: Transport emissions (calculated)
   emissionsTco2e: real('emissions_tco2e'),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============================================
+// Transport Legs - Transportation emissions tracking
+// Isometric: Transportation Emissions Accounting Module v1.1
+// Tracks each leg of transport for feedstock, biochar, or samples
+// ============================================
+
+export const transportLegs = pgTable('transport_legs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Polymorphic reference to the entity being transported
+  entityType: transportEntityType('entity_type').notNull(), // feedstock | biochar | sample | delivery
+  entityId: uuid('entity_id').notNull(),
+
+  // --- Route Details ---
+  originLat: real('origin_lat'),
+  originLng: real('origin_lng'),
+  originName: text('origin_name'),
+  destinationLat: real('destination_lat'),
+  destinationLng: real('destination_lng'),
+  destinationName: text('destination_name'),
+  distanceKm: real('distance_km'),
+
+  // --- Transport Details ---
+  transportMethodType: transportMethod('transport_method'), // road | rail | ship | pipeline | aircraft
+  vehicleType: text('vehicle_type'), // e.g., "Class 8 heavy-duty truck"
+  vehicleModelYear: text('vehicle_model_year'),
+
+  // --- Fuel/Energy Details (Isometric: Energy Usage Method - preferred) ---
+  fuelType: text('fuel_type'), // diesel, biodiesel, gasoline, electricity, etc.
+  fuelConsumedLiters: real('fuel_consumed_liters'),
+  electricityKwh: real('electricity_kwh'),
+
+  // --- Load Details (Isometric: Distance-Based Method) ---
+  loadWeightTonnes: real('load_weight_tonnes'),
+  loadCapacityUtilizationPercent: real('load_capacity_utilization_percent'),
+
+  // --- Emissions Calculation (Isometric: Section 3) ---
+  calculationMethodType: emissionsCalculationMethod('calculation_method'), // energy_usage | distance_based
+  emissionFactorUsed: real('emission_factor_used'),
+  emissionFactorSource: text('emission_factor_source'), // Citation for emission factor
+  emissionsCo2eKg: real('emissions_co2e_kg'),
+
+  // --- Book and Claim Units (Isometric: Section 4) ---
+  bcuUsed: real('bcu_used'), // Volume of BCU fuel substitution
+  bcuProvider: text('bcu_provider'),
+  bcuCertificationRef: text('bcu_certification_ref'),
+
+  // --- Documentation ---
+  billOfLading: text('bill_of_lading'),
+  weighScaleTicketRef: text('weigh_scale_ticket_ref'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

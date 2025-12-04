@@ -1,5 +1,5 @@
 {
-  "id": "97cf3e2b-e094-4ed0-bd4d-9a879875369c",
+  "id": "2ab6c5e6-9799-4b6f-bcdc-0eb62f961431",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -835,6 +835,101 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.production_run_readings": {
+      "name": "production_run_readings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "production_run_id": {
+          "name": "production_run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "temperature_c": {
+          "name": "temperature_c",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pressure_bar": {
+          "name": "pressure_bar",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ch4_composition": {
+          "name": "ch4_composition",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "n2o_composition": {
+          "name": "n2o_composition",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "co_composition": {
+          "name": "co_composition",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "co2_composition": {
+          "name": "co2_composition",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gas_flow_rate": {
+          "name": "gas_flow_rate",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "production_run_readings_production_run_id_production_runs_id_fk": {
+          "name": "production_run_readings_production_run_id_production_runs_id_fk",
+          "tableFrom": "production_run_readings",
+          "tableTo": "production_runs",
+          "columnsFrom": [
+            "production_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.production_runs": {
       "name": "production_runs",
       "schema": "",
@@ -1172,6 +1267,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "total_carbon_percent": {
+          "name": "total_carbon_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inorganic_carbon_percent": {
+          "name": "inorganic_carbon_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "organic_carbon_percent": {
+          "name": "organic_carbon_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
         "carbon_content_percent": {
           "name": "carbon_content_percent",
           "type": "real",
@@ -1186,6 +1299,30 @@
         },
         "oxygen_content_percent": {
           "name": "oxygen_content_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nitrogen_percent": {
+          "name": "nitrogen_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sulfur_percent": {
+          "name": "sulfur_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "h_corg_molar_ratio": {
+          "name": "h_corg_molar_ratio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "o_corg_molar_ratio": {
+          "name": "o_corg_molar_ratio",
           "type": "real",
           "primaryKey": false,
           "notNull": false
@@ -1211,6 +1348,162 @@
         "fixed_carbon_percent": {
           "name": "fixed_carbon_percent",
           "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ph": {
+          "name": "ph",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "salt_content_g_per_kg": {
+          "name": "salt_content_g_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bulk_density_kg_per_m3": {
+          "name": "bulk_density_kg_per_m3",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "water_holding_capacity_percent": {
+          "name": "water_holding_capacity_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lead_mg_per_kg": {
+          "name": "lead_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cadmium_mg_per_kg": {
+          "name": "cadmium_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "copper_mg_per_kg": {
+          "name": "copper_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickel_mg_per_kg": {
+          "name": "nickel_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mercury_mg_per_kg": {
+          "name": "mercury_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zinc_mg_per_kg": {
+          "name": "zinc_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chromium_mg_per_kg": {
+          "name": "chromium_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "arsenic_mg_per_kg": {
+          "name": "arsenic_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pahs_efsa8_mg_per_kg": {
+          "name": "pahs_efsa8_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pahs_epa16_mg_per_kg": {
+          "name": "pahs_epa16_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pcdd_f_ng_per_kg": {
+          "name": "pcdd_f_ng_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pcb_mg_per_kg": {
+          "name": "pcb_mg_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phosphorus_g_per_kg": {
+          "name": "phosphorus_g_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "potassium_g_per_kg": {
+          "name": "potassium_g_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "magnesium_g_per_kg": {
+          "name": "magnesium_g_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "calcium_g_per_kg": {
+          "name": "calcium_g_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "iron_g_per_kg": {
+          "name": "iron_g_per_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "random_reflectance_r0": {
+          "name": "random_reflectance_r0",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "residual_organic_carbon_percent": {
+          "name": "residual_organic_carbon_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lab_name": {
+          "name": "lab_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lab_accreditation_number": {
+          "name": "lab_accreditation_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "analysis_method": {
+          "name": "analysis_method",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -1942,6 +2235,199 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.transport_legs": {
+      "name": "transport_legs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "transport_entity_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin_lat": {
+          "name": "origin_lat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "origin_lng": {
+          "name": "origin_lng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "origin_name": {
+          "name": "origin_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "destination_lat": {
+          "name": "destination_lat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "destination_lng": {
+          "name": "destination_lng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "destination_name": {
+          "name": "destination_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "distance_km": {
+          "name": "distance_km",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transport_method": {
+          "name": "transport_method",
+          "type": "transport_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicle_type": {
+          "name": "vehicle_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicle_model_year": {
+          "name": "vehicle_model_year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fuel_type": {
+          "name": "fuel_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fuel_consumed_liters": {
+          "name": "fuel_consumed_liters",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "electricity_kwh": {
+          "name": "electricity_kwh",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "load_weight_tonnes": {
+          "name": "load_weight_tonnes",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "load_capacity_utilization_percent": {
+          "name": "load_capacity_utilization_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "calculation_method": {
+          "name": "calculation_method",
+          "type": "emissions_calculation_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emission_factor_used": {
+          "name": "emission_factor_used",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emission_factor_source": {
+          "name": "emission_factor_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emissions_co2e_kg": {
+          "name": "emissions_co2e_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bcu_used": {
+          "name": "bcu_used",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bcu_provider": {
+          "name": "bcu_provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bcu_certification_ref": {
+          "name": "bcu_certification_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bill_of_lading": {
+          "name": "bill_of_lading",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weigh_scale_ticket_ref": {
+          "name": "weigh_scale_ticket_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.applications": {
       "name": "applications",
       "schema": "",
@@ -2028,6 +2514,49 @@
           "primaryKey": false,
           "notNull": false
         },
+        "field_identifier": {
+          "name": "field_identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gis_boundary_reference": {
+          "name": "gis_boundary_reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durability_option": {
+          "name": "durability_option",
+          "type": "durability_option",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "soil_temperature_c": {
+          "name": "soil_temperature_c",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "soil_temperature_source": {
+          "name": "soil_temperature_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "f_durable_calculated": {
+          "name": "f_durable_calculated",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "co2e_stored_tonnes": {
+          "name": "co2e_stored_tonnes",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -2082,6 +2611,95 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.soil_temperature_measurements": {
+      "name": "soil_temperature_measurements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "measurement_date": {
+          "name": "measurement_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "temperature_c": {
+          "name": "temperature_c",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "measurement_method": {
+          "name": "measurement_method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "measurement_depth_cm": {
+          "name": "measurement_depth_cm",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "measurement_lat": {
+          "name": "measurement_lat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "measurement_lng": {
+          "name": "measurement_lng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "soil_temperature_measurements_application_id_applications_id_fk": {
+          "name": "soil_temperature_measurements_application_id_applications_id_fk",
+          "tableFrom": "soil_temperature_measurements",
+          "tableTo": "applications",
+          "columnsFrom": [
+            "application_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2518,6 +3136,22 @@
         "pdf"
       ]
     },
+    "public.durability_option": {
+      "name": "durability_option",
+      "schema": "public",
+      "values": [
+        "200_year",
+        "1000_year"
+      ]
+    },
+    "public.emissions_calculation_method": {
+      "name": "emissions_calculation_method",
+      "schema": "public",
+      "values": [
+        "energy_usage",
+        "distance_based"
+      ]
+    },
     "public.feedstock_status": {
       "name": "feedstock_status",
       "schema": "public",
@@ -2558,6 +3192,27 @@
         "feedstock_pile",
         "biochar_pile",
         "product_pile"
+      ]
+    },
+    "public.transport_entity_type": {
+      "name": "transport_entity_type",
+      "schema": "public",
+      "values": [
+        "feedstock",
+        "biochar",
+        "sample",
+        "delivery"
+      ]
+    },
+    "public.transport_method": {
+      "name": "transport_method",
+      "schema": "public",
+      "values": [
+        "road",
+        "rail",
+        "ship",
+        "pipeline",
+        "aircraft"
       ]
     }
   },
