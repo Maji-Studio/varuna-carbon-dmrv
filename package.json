@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm docker:up && pnpm db:wait && pnpm db:migrate && next dev",
+    "dev": "pnpm docker:up && pnpm db:wait && pnpm db:migrate && pnpm db:seed && next dev",
+    "dev:quick": "pnpm docker:up && pnpm db:wait && pnpm db:migrate && next dev",
     "dev:next": "next dev",
     "build": "next build",
+    "db:migrate:prod": "echo 'Ensure DATABASE_URL points to production!' && drizzle-kit migrate",
     "start": "next start",
     "lint": "eslint",
     "docker:up": "docker compose up -d",

@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Varuna Carbon DMRV
 
-## Getting Started
+Dark Earth Carbon's Data Management, Reporting, and Verification system for biochar carbon credits following the Isometric Protocol.
 
-First, run the development server:
+## Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- [Node.js](https://nodejs.org/) 18+
+- [pnpm](https://pnpm.io/)
+- [Docker](https://www.docker.com/) (for PostgreSQL)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quick Start
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repository
+2. Copy environment file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+4. Start development (Docker + DB + migrations + seed + Next.js):
+   ```bash
+   pnpm dev
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The app will be available at http://localhost:3000
 
-## Learn More
+## Available Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Script | Description |
+|--------|-------------|
+| `pnpm dev` | Full dev setup: Docker, migrations, seed data, Next.js server |
+| `pnpm dev:quick` | Same as dev but skips seeding (preserves existing data) |
+| `pnpm dev:next` | Just Next.js (assumes DB already running) |
+| `pnpm build` | Production build |
+| `pnpm start` | Run production server |
+| `pnpm lint` | Run ESLint |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Database Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Script | Description |
+|--------|-------------|
+| `pnpm db:generate` | Generate migration files from schema changes |
+| `pnpm db:migrate` | Run pending migrations |
+| `pnpm db:migrate:prod` | Run migrations (with reminder to check DATABASE_URL) |
+| `pnpm db:push` | Push schema directly (dev only, no migration files) |
+| `pnpm db:seed` | Seed database with test data |
+| `pnpm db:studio` | Open Drizzle Studio GUI |
 
-## Deploy on Vercel
+### Docker Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Script | Description |
+|--------|-------------|
+| `pnpm docker:up` | Start PostgreSQL container |
+| `pnpm docker:down` | Stop PostgreSQL container |
+| `pnpm docker:clean` | Stop container and remove data volume |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database Workflow
+
+### Development
+Use `db:push` for rapid iteration - it syncs your schema directly without creating migration files.
+
+### Production (Vercel)
+
+**Important:** Run migrations separately from deploys to avoid breaking prod if a build fails.
+
+1. Make schema changes in `src/db/schema.ts`
+2. Generate migration: `pnpm db:generate`
+3. Test locally: `pnpm db:migrate`
+4. Commit the migration files in `./drizzle`
+5. Deploy to Vercel (build only, no auto-migration)
+6. Once deploy succeeds, run migration against prod:
+   ```bash
+   DATABASE_URL=<prod-url> pnpm db:migrate:prod
+   ```
+
+**Writing safe migrations:**
+- Add columns as nullable or with defaults
+- Don't drop/rename columns in the same deploy as code changes
+- If breaking changes needed: deploy compatible code → migrate → deploy final code
+
+## Tech Stack
+
+- **Framework:** Next.js 15
+- **Database:** PostgreSQL 17
+- **ORM:** Drizzle ORM
+- **Protocol:** Isometric Protocol v1.2
