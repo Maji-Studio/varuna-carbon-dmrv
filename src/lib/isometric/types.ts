@@ -153,18 +153,42 @@ export interface CertifyProject {
 export interface GHGStatement {
   id: string;
   project_id: string;
-  status: string;
-  reporting_period_start: string;
-  reporting_period_end: string;
-  net_removal_tonnes_co2e: number;
+  status: 'DRAFT' | 'SUBMITTED' | 'VERIFIED';
+  verifier: string | null;
+  removal_ids: string[];
+  ghg_statement_report_url: string | null;
+  submitted_at: string | null;
+  credits_issued_at: string | null;
+  pending_total_co2e_removed_kg: number | null;
+}
+
+export interface CreateGHGStatementRequest {
+  project_id: string;
+  end_on: string; // Only end_on is required
 }
 
 export interface Removal {
   id: string;
+  supplier_reference_id: string | null;
+  started_on: string;
+  completed_on: string;
+  co2e_net_removed_kg: number;
+  co2e_net_removed_without_discount_kg: number;
+  co2e_net_removed_standard_deviation_kg: number | null;
+  ghg_statement_id: string | null;
+  feedstock_type_id: string | null;
+  label_ids: string[];
+}
+
+export interface CreateRemovalRequest {
   project_id: string;
-  ghg_statement_id?: string;
-  status: string;
-  net_removal_tonnes_co2e: number;
+  removal_template_id?: string;
+  supplier_reference_id: string;
+  started_on: string; // date format YYYY-MM-DD
+  completed_on: string; // date format YYYY-MM-DD
+  feedstock_type_id?: string;
+  label_ids?: string[];
+  removal_template_components?: RemovalTemplateComponentInputs[];
 }
 
 export interface Component {
@@ -187,4 +211,133 @@ export interface Source {
   name: string;
   type: string;
   upload_url?: string;
+}
+
+// ============================================
+// Certify API - Biochar-specific Types
+// ============================================
+
+export type StorageMethod =
+  | 'biochar_field'
+  | 'biochar_landfill'
+  | 'biomass_injection_well'
+  | 'biomass_subsurface'
+  | 'saline_aquifer';
+
+export interface ScalarQuantity {
+  magnitude: number;
+  unit: string;
+  standard_deviation?: number | null;
+}
+
+export interface FeedstockType {
+  id: string;
+  name: string;
+  supplier_reference_id: string | null;
+}
+
+export interface CreateFeedstockTypeRequest {
+  name: string;
+  supplier_reference_id?: string;
+}
+
+export interface StorageLocation {
+  id: string;
+  name: string;
+  project_id: string;
+  supplier_id: string;
+  storage_method: StorageMethod;
+  latitude?: number | null;
+  longitude?: number | null;
+  description?: string | null;
+  supplier_reference_id?: string | null;
+}
+
+export interface CreateStorageLocationRequest {
+  project_id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  storage_method?: StorageMethod;
+  description?: string;
+  supplier_reference_id?: string;
+}
+
+export interface BiocharApplication {
+  id: string;
+  storage_location_id: string;
+  production_batch_id: string;
+  removal_id: string | null;
+  supplier_reference_id: string | null;
+  application_date: string;
+  uploaded_at: string;
+  truck_mass_on_arrival: ScalarQuantity;
+  truck_mass_on_departure: ScalarQuantity;
+  average_application_rate: ScalarQuantity;
+}
+
+export interface CreateBiocharApplicationRequest {
+  project_id: string;
+  storage_site_id: string; // Note: API uses storage_site_id, not storage_location_id
+  production_batch_id: string;
+  application_date: string; // YYYY-MM-DD format
+  truck_mass_on_arrival: ScalarQuantity;
+  truck_mass_on_departure: ScalarQuantity;
+  average_application_rate: ScalarQuantity;
+  supplier_reference_id: string;
+}
+
+export interface ProductionBatch {
+  id: string;
+  facility_id: string;
+  feedstock_type_ids: string[];
+  supplier_reference_id: string | null;
+  kind: 'BIOCHAR' | 'BIO_OIL' | 'BIOMASS';
+  started_at: string;
+  ended_at: string;
+  uploaded_at: string;
+  display_name: string;
+  mass: ScalarQuantity;
+}
+
+export interface CreateProductionBatchRequest {
+  facility_id: string;
+  feedstock_type_ids: string[];
+  kind: 'BIOCHAR' | 'BIO_OIL' | 'BIOMASS';
+  started_at: string;
+  ended_at: string;
+  display_name: string;
+  mass: ScalarQuantity;
+  supplier_reference_id?: string;
+}
+
+export interface Facility {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  supplier_reference_id?: string | null;
+}
+
+// ============================================
+// Removal Template Component Types
+// ============================================
+
+export interface CreateComponentScalarInput {
+  __typename?: 'CreateComponentScalarInput';
+  input_key: string;
+  datapoint_id: string;
+}
+
+export interface CreateComponentListInput {
+  __typename?: 'CreateComponentListInput';
+  input_key: string;
+  datapoint_ids: string[];
+}
+
+export type ComponentInput = CreateComponentScalarInput | CreateComponentListInput;
+
+export interface RemovalTemplateComponentInputs {
+  removal_template_component_id: string;
+  inputs: ComponentInput[];
 }

@@ -22,6 +22,13 @@
       "when": 1764942402915,
       "tag": "0002_dapper_molecule_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764955446779,
+      "tag": "0003_lean_otto_octavius",
+      "breakpoints": true
     }
   ]
 }
