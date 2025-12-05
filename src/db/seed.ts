@@ -1016,10 +1016,11 @@ async function seed() {
   const delivery2 = deliveriesData[1];
 
   // ============================================
-  // 19. Applications (Soil Storage with Durability)
+  // 19. Applications (Soil Storage - Field Level Data)
   // Isometric: Biochar Storage in Soil Environments Module v1.2
+  // Note: Durability inputs (soil temp, durability option) are at Credit Batch level
   // ============================================
-  console.log('🌾 Creating applications with durability calculations...');
+  console.log('🌾 Creating applications (field-level data)...');
   const applicationsData = await db
     .insert(schema.applications)
     .values([
@@ -1038,11 +1039,7 @@ async function seed() {
         applicationMethodType: 'mechanical',
         fieldIdentifier: 'Kanji Lalji Coffee Farm - Plot A',
         gisBoundaryReference: 'GIS-TZ-IR-2025-0042',
-        // Durability calculation (Isometric Section 5.1)
-        durabilityOptionType: '200_year',
-        soilTemperatureC: 22.5, // Annual average for tropical highland
-        soilTemperatureSource: 'baseline',
-        fDurableCalculated: 0.89, // F_durable,200 calculation result
+        // CO2e calculated from Credit Batch durability
         co2eStoredTonnes: 9.84, // Biochar * Corg * 3.67 * F_durable
       },
       {
@@ -1060,11 +1057,7 @@ async function seed() {
         applicationMethodType: 'manual',
         fieldIdentifier: 'Mama Tuma Farm - Maize Field',
         gisBoundaryReference: 'GIS-TZ-IR-2025-0043',
-        // Durability calculation
-        durabilityOptionType: '200_year',
-        soilTemperatureC: 24.2, // Slightly warmer lowland
-        soilTemperatureSource: 'baseline',
-        fDurableCalculated: 0.87,
+        // CO2e calculated from Credit Batch durability
         co2eStoredTonnes: 0.78,
       },
     ])
@@ -1248,9 +1241,10 @@ async function seed() {
   ]);
 
   // ============================================
-  // 22. Credit Batches
+  // 22. Credit Batches (with Durability & Verification Data)
+  // Isometric: Section 5.1 (Durability), G-SZZR-0 (Third-Party Verification)
   // ============================================
-  console.log('💳 Creating credit batches...');
+  console.log('💳 Creating credit batches with durability calculations...');
   const creditBatchesData = await db
     .insert(schema.creditBatches)
     .values([
@@ -1269,6 +1263,18 @@ async function seed() {
         creditsTco2e: 9.84,
         valueTzs: 14760000,
         bufferPoolPercent: 5,
+        // Durability Calculation (Isometric Section 5.1)
+        durabilityOptionType: '200_year',
+        soilTemperatureC: 22.5, // Annual average for tropical highland
+        soilTemperatureSource: 'baseline',
+        fDurableCalculated: 0.89, // F_durable,200 calculation result
+        // Site Management (Section 5.2.1)
+        siteManagementNotes: 'Coffee farm - drip irrigation, minimal tillage, organic fertilizers only',
+        // Third-party verification (direct application - not required)
+        affidavitReference: null,
+        intendedUseConfirmation: null,
+        companyVerificationRef: null,
+        mixingTimelineDays: null,
       },
       {
         code: 'CB-2025-002',
@@ -1285,6 +1291,13 @@ async function seed() {
         creditsTco2e: 0.78,
         valueTzs: 1170000,
         bufferPoolPercent: 8,
+        // Durability Calculation
+        durabilityOptionType: '200_year',
+        soilTemperatureC: 24.2, // Slightly warmer lowland
+        soilTemperatureSource: 'baseline',
+        fDurableCalculated: 0.87,
+        // Site Management
+        siteManagementNotes: 'Maize farm - rain-fed, conventional tillage, NPK fertilizer application',
       },
       {
         code: 'CB-2025-003',
@@ -1295,6 +1308,8 @@ async function seed() {
         startDate: new Date('2025-01-21T00:00:00Z'),
         certifier: 'Isometric',
         registry: 'Isometric',
+        // Durability option selected but not yet calculated
+        durabilityOptionType: '1000_year', // Premium hardwood qualifies for 1000-year
       },
     ])
     .returning();

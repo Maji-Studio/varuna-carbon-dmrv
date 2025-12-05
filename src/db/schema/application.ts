@@ -10,7 +10,6 @@ import { relations } from 'drizzle-orm';
 import {
   applicationStatus,
   applicationMethod,
-  durabilityOption,
 } from './common';
 import { facilities } from './facilities';
 import { deliveries } from './logistics';
@@ -48,21 +47,10 @@ export const applications = pgTable('applications', {
   fieldIdentifier: text('field_identifier'), // Field name/parcel ID
   gisBoundaryReference: text('gis_boundary_reference'), // Link to GIS layer data
 
-  // --- Durability Calculation (Isometric: Section 5.1) ---
-  // Choose 200-year or 1000-year durability option
-  durabilityOptionType: durabilityOption('durability_option'),
-
-  // Soil temperature - required for F_durable calculation (200-year option)
-  // Formula: F_durable,200 = min(0.95, 1 - [c + (a + b·ln(T_soil))·H/C_org])
-  // Where: a=-0.383, b=0.350, c=-0.048
-  soilTemperatureC: real('soil_temperature_c'), // Annual average
-  soilTemperatureSource: text('soil_temperature_source'), // 'baseline' | 'global_database'
-
-  // Calculated durability fraction
-  fDurableCalculated: real('f_durable_calculated'),
-
-  // CO2e stored calculation result
-  co2eStoredTonnes: real('co2e_stored_tonnes'),
+  // --- CO2e Calculation Results ---
+  // Durability inputs (soil temp, H:Corg) are at Credit Batch level
+  // These are the per-application calculated outputs
+  co2eStoredTonnes: real('co2e_stored_tonnes'), // This application's contribution
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

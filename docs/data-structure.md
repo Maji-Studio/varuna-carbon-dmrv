@@ -201,7 +201,7 @@ emissions_from_grid_kg         # Calculated
 total_emissions_kg             # Calculated
 ```
 
-### Application - Durability Calculation (Section 5)
+### Application - Field-Level Data (Section 5)
 
 ```
 # Field Details
@@ -212,18 +212,17 @@ application_method             # manual/mechanical
 field_identifier               # Field name/parcel ID
 gis_boundary_reference         # Link to GIS layer
 
-# Durability (Isometric Section 5.1)
-durability_option              # '200_year' | '1000_year'
-soil_temperature_c             # Annual average (required for 200-year)
-soil_temperature_source        # 'baseline' | 'global_database'
-f_durable_calculated           # Calculated durability fraction
-co2e_stored_tonnes             # Final CO2e removal
-
 # Application Quantities
 biochar_applied_tons
 biochar_dry_matter_tons
 total_applied_tons             # Calculated
+
+# Calculated Output
+co2e_stored_tonnes             # This field's CO2e contribution
 ```
+
+Note: Durability calculation inputs (soil_temperature, durability_option, f_durable)
+are now at Credit Batch level since they apply to the entire project/batch.
 
 ### Soil Temperature Measurements (G-QMBJ-0)
 
@@ -280,14 +279,39 @@ bill_of_lading
 weigh_scale_ticket_ref
 ```
 
-### Credit Batch - Verification
+### Credit Batch - Verification (Isometric Section 5.1, G-SZZR-0)
 
 ```
+# Overview
 certifier                      # "Isometric"
 registry
-credits_tco2e                  # Net CO2e removal
+credits_tco2e                  # Net CO2e removal (aggregated from applications)
 buffer_pool_percent            # Risk-based (2-20%)
 status                         # pending → verified → issued
+
+# Durability Calculation (Project-Level)
+durability_option              # '200_year' | '1000_year'
+soil_temperature_c             # Annual average for project area
+soil_temperature_source        # 'baseline' | 'global_database'
+f_durable_calculated           # Durability fraction (max 0.95)
+
+# Site Management Summary (Section 5.2.1)
+site_management_notes          # Irrigation, tillage, fertilizer summary
+
+# Third-Party Sale Verification (G-SZZR-0)
+# Required when biochar is sold to third parties before application
+affidavit_reference            # Legally binding declaration ref
+intended_use_confirmation      # Explicit soil application intent
+company_verification_ref       # 3+ years active ag company proof
+mixing_timeline_days           # Days until mixed with soil
+```
+
+Formula for 200-year durability:
+```
+F_durable,200 = min(0.95, 1 - [c + (a + b·ln(T_soil))·H/C_org])
+Where: a=-0.383, b=0.350, c=-0.048
+
+CO2e_stored = C_biochar × m_biochar × F_durable × 44.01/12.01
 ```
 
 ## Enums
@@ -314,11 +338,11 @@ status                         # pending → verified → issued
 | `documentation_type` | photo, video, pdf | documentation |
 | `documentation_entity_type` | feedstock, production_run, sample, incident_report, biochar_product, order, delivery, application, credit_batch | documentation |
 
-### Isometric Protocol Enums (NEW)
+### Isometric Protocol Enums
 
 | Enum | Values | Used By | Protocol Reference |
 |------|--------|---------|-------------------|
-| `durability_option` | 200_year, 1000_year | applications | Section 5.1 |
+| `durability_option` | 200_year, 1000_year | credit_batches | Section 5.1 |
 | `transport_entity_type` | feedstock, biochar, sample, delivery | transport_legs | Transportation Module |
 | `transport_method` | road, rail, ship, pipeline, aircraft | transport_legs | Transportation Module |
 | `emissions_calculation_method` | energy_usage, distance_based | transport_legs | Section 3.2, 3.3 |

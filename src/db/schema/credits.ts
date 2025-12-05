@@ -9,7 +9,7 @@ import {
   primaryKey,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { creditBatchStatus } from './common';
+import { creditBatchStatus, durabilityOption } from './common';
 import { facilities, reactors } from './facilities';
 import { applications } from './application';
 
@@ -42,6 +42,30 @@ export const creditBatches = pgTable('credit_batches', {
 
   // Isometric: Buffer pool contribution (risk-based 2-20%)
   bufferPoolPercent: real('buffer_pool_percent'),
+
+  // --- Durability Calculation (Isometric: Soil Storage Module Section 5.1) ---
+  // Project-level choice: 200-year (H:Corg + soil temp) or 1000-year (R0 reflectance)
+  durabilityOptionType: durabilityOption('durability_option'),
+
+  // Soil temperature - required for F_durable calculation (200-year option)
+  // Formula: F_durable,200 = min(0.95, 1 - [c + (a + b·ln(T_soil))·H/C_org])
+  // Where: a=-0.383, b=0.350, c=-0.048
+  soilTemperatureC: real('soil_temperature_c'), // Annual average for project area
+  soilTemperatureSource: text('soil_temperature_source'), // 'baseline' | 'global_database'
+
+  // Calculated durability fraction (applies to all applications in this batch)
+  fDurableCalculated: real('f_durable_calculated'),
+
+  // --- Site Management Summary (Isometric: Section 5.2.1) ---
+  // Aggregated info for GHG Statement submission
+  siteManagementNotes: text('site_management_notes'), // Irrigation, tillage, fertilizer summary
+
+  // --- Third-Party Sale Verification (Isometric: SubRequirement G-SZZR-0) ---
+  // Required when biochar is sold to third parties before application
+  affidavitReference: text('affidavit_reference'), // Legally binding declaration ref
+  intendedUseConfirmation: text('intended_use_confirmation'), // Explicit soil application intent
+  companyVerificationRef: text('company_verification_ref'), // 3+ years active ag company proof
+  mixingTimelineDays: integer('mixing_timeline_days'), // Days until mixed with soil
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -8,6 +8,20 @@
       "when": 1764859192059,
       "tag": "0000_fresh_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764942151572,
+      "tag": "0001_handy_lady_deathstrike",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764942402915,
+      "tag": "0002_dapper_molecule_man",
+      "breakpoints": true
     }
   ]
 }
