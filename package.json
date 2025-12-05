@@ -1,7 +1,7 @@
 {
   "name": "varuna-carbon-dmrv",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "pnpm docker:up && pnpm db:wait && pnpm db:migrate && pnpm db:seed && next dev",
     "dev:quick": "pnpm docker:up && pnpm db:wait && pnpm db:migrate && next dev",

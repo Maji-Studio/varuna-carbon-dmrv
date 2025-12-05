@@ -1,6 +1,22 @@
 # Varuna Carbon DMRV
 
-Dark Earth Carbon's Data Management, Reporting, and Verification system for biochar carbon credits following the Isometric Protocol.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue)](https://www.postgresql.org/)
+[![Isometric Protocol](https://img.shields.io/badge/Protocol-Isometric%20v1.2-green)](https://isometric.com/)
+
+An open-source **Data Management, Reporting, and Verification (DMRV)** system for biochar carbon credits, built following the [Isometric Protocol](https://isometric.com/).
+
+## Overview
+
+Varuna Carbon DMRV provides a complete solution for managing biochar carbon removal projects, from project registration through credit issuance. It implements the Isometric Protocol for transparent, verifiable carbon credit tracking.
+
+### Key Features
+
+- **Project Management** - Register and manage biochar carbon removal projects
+- **Credit Tracking** - Track carbon credits from creation through issuance
+- **Isometric Integration** - Built to comply with Isometric Protocol v1.2
+- **Audit Trail** - Complete transparency for verification and auditing
 
 ## Prerequisites
 
@@ -10,16 +26,23 @@ Dark Earth Carbon's Data Management, Reporting, and Verification system for bioc
 
 ## Quick Start
 
-1. Clone the repository
-2. Copy environment file:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Maji-Studio/varuna-carbon-dmrv.git
+   cd varuna-carbon-dmrv
+   ```
+
+2. **Copy environment file**
    ```bash
    cp .env.example .env
    ```
-3. Install dependencies:
+
+3. **Install dependencies**
    ```bash
    pnpm install
    ```
-4. Start development (Docker + DB + migrations + seed + Next.js):
+
+4. **Start development** (Docker + DB + migrations + seed + Next.js)
    ```bash
    pnpm dev
    ```
@@ -61,7 +84,7 @@ The app will be available at http://localhost:3000
 ### Development
 Use `db:push` for rapid iteration - it syncs your schema directly without creating migration files.
 
-### Production (Vercel)
+### Production
 
 **Important:** Run migrations separately from deploys to avoid breaking prod if a build fails.
 
@@ -82,7 +105,33 @@ Use `db:push` for rapid iteration - it syncs your schema directly without creati
 
 ## Tech Stack
 
-- **Framework:** Next.js 15
-- **Database:** PostgreSQL 17
-- **ORM:** Drizzle ORM
-- **Protocol:** Isometric Protocol v1.2
+- **Framework:** [Next.js 15](https://nextjs.org/)
+- **Database:** [PostgreSQL 17](https://www.postgresql.org/)
+- **ORM:** [Drizzle ORM](https://orm.drizzle.team/)
+- **Protocol:** [Isometric Protocol v1.2](https://isometric.com/)
+
+## Contributing
+
+We welcome contributions! Please see our contributing guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow the existing code style
+- Add tests for new features
+- Update documentation as needed
+- Ensure all tests pass before submitting PR
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- [Isometric](https://isometric.com/) for the carbon credit protocol
+- [Maji Studio](https://github.com/Maji-Studio) for project development
