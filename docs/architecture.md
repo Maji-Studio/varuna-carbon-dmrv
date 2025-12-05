@@ -41,7 +41,11 @@ varuna-carbon-dmrv/
 │   │
 │   ├── lib/                  # Integrations & third-party
 │   │   ├── auth.ts           # better-auth setup
-│   │   └── query-client.ts   # React Query config
+│   │   ├── query-client.ts   # React Query config
+│   │   └── isometric/        # Isometric API client
+│   │       ├── index.ts      # Public exports
+│   │       ├── client.ts     # API client class
+│   │       └── types.ts      # Type definitions
 │   │
 │   ├── queries/              # React Query factories
 │   │   ├── projects.ts       # Query keys + options
@@ -86,8 +90,117 @@ Component → hooks/ → queries/ → fn/ → data-access/ → db/
 
 | Folder | Purpose | Examples |
 |--------|---------|----------|
-| **lib/** | Third-party integrations | `auth.ts` (better-auth), `query-client.ts`, `stripe.ts` |
+| **lib/** | Third-party integrations | `auth.ts` (better-auth), `query-client.ts`, `isometric/` |
 | **utils/** | Pure helper functions | `cn()`, `formatDate()`, `slugify()` |
+
+## Isometric API Integration
+
+The `src/lib/isometric/` module provides a client for interacting with Isometric's Registry and Certify (MRV) APIs. This enables syncing biochar carbon removal data with Isometric for credit issuance and verification.
+
+### Authentication
+
+Isometric requires two credentials for API authentication:
+
+| Header | Purpose | Source |
+|--------|---------|--------|
+| `X-Client-Secret` | Identifies the client application | `ISOMETRIC_CLIENT_SECRET` env var |
+| `Authorization: Bearer <token>` | Authenticates as a specific organization | `ISOMETRIC_ACCESS_TOKEN` env var |
+
+Credentials are managed in the Isometric UI at: https://registry.isometric.com/account/team-settings
+
+### Environment Variables
+
+```bash
+# .env
+ISOMETRIC_CLIENT_SECRET=your_client_secret_here
+ISOMETRIC_ACCESS_TOKEN=your_access_token_here
+ISOMETRIC_ENVIRONMENT=sandbox  # or 'production'
+```
+
+### API Endpoints
+
+The client connects to two Isometric APIs:
+
+| API | Sandbox URL | Production URL | Purpose |
+|-----|-------------|----------------|---------|
+| **Registry** | `api.sandbox.isometric.com/registry/v0` | `api.isometric.com/registry/v0` | Credits, deliveries, retirements |
+| **Certify (MRV)** | `api.sandbox.isometric.com/mrv/v0` | `api.isometric.com/mrv/v0` | Projects, removals, GHG statements |
+
+### Usage
+
+```typescript
+import { isometric } from '@/lib/isometric';
+
+// Registry API - Get organization info
+const org = await isometric.getOrganisation();
+
+// Registry API - List projects
+const projects = await isometric.listProjects();
+
+// Registry API - Retire credits
+const retirement = await isometric.retireOldestCredits({
+  supplier_id: 'sup_123',
+  quantity: 100,
+  retirement_reason: 'Voluntary offset',
+});
+
+// Certify API - Create a removal
+const removal = await isometric.createRemoval({
+  project_id: 'proj_123',
+  removal_template_id: 'template_456',
+  reporting_period_start: '2024-01-01',
+  reporting_period_end: '2024-03-31',
+});
+
+// Certify API - Submit for verification
+const statement = await isometric.createGHGStatement({
+  project_id: 'proj_123',
+  removal_ids: ['rem_789'],
+  reporting_period_start: '2024-01-01',
+  reporting_period_end: '2024-03-31',
+});
+```
+
+### Module Structure
+
+```
+src/lib/isometric/
+├── index.ts      # Public exports
+├── client.ts     # IsometricClient class with all API methods
+└── types.ts      # TypeScript type definitions
+```
+
+### Key Concepts
+
+| Isometric Concept | Description |
+|-------------------|-------------|
+| **Organisation** | Your company entity in Isometric |
+| **Supplier** | Entity that produces carbon removals |
+| **Project** | A carbon removal project (e.g., biochar production site) |
+| **Removal** | A CO₂e removal event for a reporting period |
+| **GHG Statement** | Submission of removals for third-party verification |
+| **Credit Batch** | Issued carbon credits after verification |
+| **Issuance** | Record of credits being issued |
+| **Delivery** | Transfer of credits from supplier to buyer |
+| **Retirement** | Permanent removal of credits from circulation |
+
+### Data Flow to Isometric
+
+```
+Local DB (Varuna) → Certify API (MRV) → Verification → Registry API → Credits
+      │                    │                              │
+      │                    │                              │
+Production Runs     Create Removals            Credit Batches
+Biochar Samples     Submit GHG Statement       Deliveries
+Applications        Third-party Review         Retirements
+```
+
+### Documentation
+
+- Authentication: https://docs.isometric.com/api-reference/authentication
+- API Introduction: https://docs.isometric.com/api-reference/introduction
+- Key Certify Concepts: https://docs.isometric.com/user-guides/certify/key-certify-concepts
+- Key Registry Concepts: https://docs.isometric.com/user-guides/registry/key-registry-concepts
 
 ## Example: Creating a Project
 
