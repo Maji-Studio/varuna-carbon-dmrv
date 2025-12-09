@@ -9,7 +9,7 @@
  *   const result = await syncFacility(facilityId);
  */
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   facilities,
@@ -380,16 +380,11 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
       return { success: false, error: "Credit batch has no linked production runs" };
     }
 
-    // Load production runs with samples separately to avoid identifier length issues
-    const allProductionRuns = await Promise.all(
-      [...productionRunIds].map(async (prId) => {
-        const pr = await db.query.productionRuns.findFirst({
-          where: eq(productionRuns.id, prId),
-          with: { samples: true },
-        });
-        return pr!;
-      })
-    );
+    // Load production runs with samples in a single query
+    const allProductionRuns = await db.query.productionRuns.findMany({
+      where: inArray(productionRuns.id, [...productionRunIds]),
+      with: { samples: true },
+    });
 
     // Validate aggregation inputs before proceeding
     const aggValidation = aggregation.validateAggregationInputs(allProductionRuns);
