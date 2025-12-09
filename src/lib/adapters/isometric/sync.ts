@@ -2,13 +2,15 @@
  * Isometric Sync Orchestration
  *
  * Handles batch syncing of entities to Isometric and retry logic for failed syncs.
+ * Uses registry_identities table for tracking sync state.
+ *
  * This module is designed to be called by:
  * - Cron jobs / scheduled tasks for batch processing
  * - Manual trigger for retry operations
  * - Event handlers for real-time sync
  */
 
-import { eq, and, or, lt, isNull } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { db } from '@/db';
 import {
   facilities,
@@ -16,9 +18,10 @@ import {
   productionRuns,
   applications,
   creditBatches,
+  registryIdentities,
 } from '@/db/schema';
 import { isometricAdapter } from './adapter';
-import type { SyncResult } from '../types';
+import { getExternalId } from '../registry-identity-service';
 
 /**
  * Sync statistics returned by batch operations
@@ -50,6 +53,42 @@ const DEFAULT_OPTIONS: SyncOptions = {
 };
 
 /**
+ * Find entities that need syncing by checking registry_identities table
+ */
+async function findEntitiesNeedingSync(
+  entityType: string,
+  externalEntityType: string,
+  entityIds: string[],
+  options: SyncOptions
+): Promise<string[]> {
+  const needsSync: string[] = [];
+
+  for (const entityId of entityIds) {
+    // Check if this entity has a registry identity for Isometric
+    const identity = await db.query.registryIdentities.findFirst({
+      where: and(
+        eq(registryIdentities.entityType, entityType),
+        eq(registryIdentities.entityId, entityId),
+        eq(registryIdentities.registryName, 'isometric'),
+        eq(registryIdentities.externalEntityType, externalEntityType)
+      ),
+    });
+
+    if (!identity) {
+      // No identity exists - needs sync
+      needsSync.push(entityId);
+    } else if (identity.syncStatus === 'pending') {
+      needsSync.push(entityId);
+    } else if (options.includeErrors && identity.syncStatus === 'error') {
+      needsSync.push(entityId);
+    }
+    // If synced, skip it
+  }
+
+  return needsSync.slice(0, options.limit);
+}
+
+/**
  * Sync all pending facilities to Isometric
  */
 export async function syncPendingFacilities(
@@ -58,31 +97,35 @@ export async function syncPendingFacilities(
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const stats: SyncStats = { total: 0, succeeded: 0, failed: 0, skipped: 0, errors: [] };
 
-  const statusFilter = opts.includeErrors
-    ? or(eq(facilities.syncStatus, 'pending'), eq(facilities.syncStatus, 'error'))
-    : eq(facilities.syncStatus, 'pending');
-
-  const pendingFacilities = await db.query.facilities.findMany({
-    where: statusFilter,
-    limit: opts.limit,
+  // Get all facilities
+  const allFacilities = await db.query.facilities.findMany({
+    limit: opts.limit! * 2, // Get more than needed for filtering
   });
 
-  stats.total = pendingFacilities.length;
+  // Find which ones need syncing
+  const needsSync = await findEntitiesNeedingSync(
+    'facility',
+    'facility',
+    allFacilities.map((f) => f.id),
+    opts
+  );
 
-  for (const facility of pendingFacilities) {
+  stats.total = needsSync.length;
+
+  for (const facilityId of needsSync) {
     try {
-      const result = await isometricAdapter.syncFacility(facility.id);
+      const result = await isometricAdapter.syncFacility(facilityId);
       if (result.success) {
         stats.succeeded++;
       } else {
         stats.failed++;
-        stats.errors.push({ id: facility.id, error: result.error || 'Unknown error' });
+        stats.errors.push({ id: facilityId, error: result.error || 'Unknown error' });
         if (!opts.continueOnError) break;
       }
     } catch (error) {
       stats.failed++;
       stats.errors.push({
-        id: facility.id,
+        id: facilityId,
         error: error instanceof Error ? error.message : String(error),
       });
       if (!opts.continueOnError) break;
@@ -101,31 +144,33 @@ export async function syncPendingFeedstockTypes(
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const stats: SyncStats = { total: 0, succeeded: 0, failed: 0, skipped: 0, errors: [] };
 
-  const statusFilter = opts.includeErrors
-    ? or(eq(feedstockTypes.syncStatus, 'pending'), eq(feedstockTypes.syncStatus, 'error'))
-    : eq(feedstockTypes.syncStatus, 'pending');
-
-  const pendingTypes = await db.query.feedstockTypes.findMany({
-    where: statusFilter,
-    limit: opts.limit,
+  const allTypes = await db.query.feedstockTypes.findMany({
+    limit: opts.limit! * 2,
   });
 
-  stats.total = pendingTypes.length;
+  const needsSync = await findEntitiesNeedingSync(
+    'feedstock_type',
+    'feedstock_type',
+    allTypes.map((t) => t.id),
+    opts
+  );
 
-  for (const feedstockType of pendingTypes) {
+  stats.total = needsSync.length;
+
+  for (const typeId of needsSync) {
     try {
-      const result = await isometricAdapter.syncFeedstockType(feedstockType.id);
+      const result = await isometricAdapter.syncFeedstockType(typeId);
       if (result.success) {
         stats.succeeded++;
       } else {
         stats.failed++;
-        stats.errors.push({ id: feedstockType.id, error: result.error || 'Unknown error' });
+        stats.errors.push({ id: typeId, error: result.error || 'Unknown error' });
         if (!opts.continueOnError) break;
       }
     } catch (error) {
       stats.failed++;
       stats.errors.push({
-        id: feedstockType.id,
+        id: typeId,
         error: error instanceof Error ? error.message : String(error),
       });
       if (!opts.continueOnError) break;
@@ -137,7 +182,6 @@ export async function syncPendingFeedstockTypes(
 
 /**
  * Sync all pending production runs to Isometric
- *
  * Note: Only syncs production runs with status 'complete'
  */
 export async function syncPendingProductionRuns(
@@ -146,31 +190,35 @@ export async function syncPendingProductionRuns(
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const stats: SyncStats = { total: 0, succeeded: 0, failed: 0, skipped: 0, errors: [] };
 
-  const statusFilter = opts.includeErrors
-    ? or(eq(productionRuns.syncStatus, 'pending'), eq(productionRuns.syncStatus, 'error'))
-    : eq(productionRuns.syncStatus, 'pending');
-
-  const pendingRuns = await db.query.productionRuns.findMany({
-    where: and(statusFilter, eq(productionRuns.status, 'complete')),
-    limit: opts.limit,
+  // Only get complete runs
+  const completeRuns = await db.query.productionRuns.findMany({
+    where: eq(productionRuns.status, 'complete'),
+    limit: opts.limit! * 2,
   });
 
-  stats.total = pendingRuns.length;
+  const needsSync = await findEntitiesNeedingSync(
+    'production_run',
+    'production_batch',
+    completeRuns.map((r) => r.id),
+    opts
+  );
 
-  for (const run of pendingRuns) {
+  stats.total = needsSync.length;
+
+  for (const runId of needsSync) {
     try {
-      const result = await isometricAdapter.syncProductionBatch(run.id);
+      const result = await isometricAdapter.syncProductionBatch(runId);
       if (result.success) {
         stats.succeeded++;
       } else {
         stats.failed++;
-        stats.errors.push({ id: run.id, error: result.error || 'Unknown error' });
+        stats.errors.push({ id: runId, error: result.error || 'Unknown error' });
         if (!opts.continueOnError) break;
       }
     } catch (error) {
       stats.failed++;
       stats.errors.push({
-        id: run.id,
+        id: runId,
         error: error instanceof Error ? error.message : String(error),
       });
       if (!opts.continueOnError) break;
@@ -182,7 +230,6 @@ export async function syncPendingProductionRuns(
 
 /**
  * Sync all pending applications to Isometric
- *
  * Note: Only syncs applications with status 'applied'
  */
 export async function syncPendingApplications(
@@ -191,31 +238,36 @@ export async function syncPendingApplications(
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const stats: SyncStats = { total: 0, succeeded: 0, failed: 0, skipped: 0, errors: [] };
 
-  const statusFilter = opts.includeErrors
-    ? or(eq(applications.syncStatus, 'pending'), eq(applications.syncStatus, 'error'))
-    : eq(applications.syncStatus, 'pending');
-
-  const pendingApps = await db.query.applications.findMany({
-    where: and(statusFilter, eq(applications.status, 'applied')),
-    limit: opts.limit,
+  // Only get applied applications
+  const appliedApps = await db.query.applications.findMany({
+    where: eq(applications.status, 'applied'),
+    limit: opts.limit! * 2,
   });
 
-  stats.total = pendingApps.length;
+  // For applications, check the biochar_application step (final step)
+  const needsSync = await findEntitiesNeedingSync(
+    'application',
+    'biochar_application',
+    appliedApps.map((a) => a.id),
+    opts
+  );
 
-  for (const app of pendingApps) {
+  stats.total = needsSync.length;
+
+  for (const appId of needsSync) {
     try {
-      const result = await isometricAdapter.syncApplication(app.id);
+      const result = await isometricAdapter.syncApplication(appId);
       if (result.success) {
         stats.succeeded++;
       } else {
         stats.failed++;
-        stats.errors.push({ id: app.id, error: result.error || 'Unknown error' });
+        stats.errors.push({ id: appId, error: result.error || 'Unknown error' });
         if (!opts.continueOnError) break;
       }
     } catch (error) {
       stats.failed++;
       stats.errors.push({
-        id: app.id,
+        id: appId,
         error: error instanceof Error ? error.message : String(error),
       });
       if (!opts.continueOnError) break;
@@ -227,7 +279,6 @@ export async function syncPendingApplications(
 
 /**
  * Sync all pending credit batches to Isometric as GHG Statements
- *
  * Note: Only syncs credit batches with status 'pending'
  */
 export async function syncPendingCreditBatches(
@@ -236,31 +287,36 @@ export async function syncPendingCreditBatches(
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const stats: SyncStats = { total: 0, succeeded: 0, failed: 0, skipped: 0, errors: [] };
 
-  const statusFilter = opts.includeErrors
-    ? or(eq(creditBatches.syncStatus, 'pending'), eq(creditBatches.syncStatus, 'error'))
-    : eq(creditBatches.syncStatus, 'pending');
-
+  // Only get pending batches
   const pendingBatches = await db.query.creditBatches.findMany({
-    where: and(statusFilter, eq(creditBatches.status, 'pending')),
-    limit: opts.limit,
+    where: eq(creditBatches.status, 'pending'),
+    limit: opts.limit! * 2,
   });
 
-  stats.total = pendingBatches.length;
+  // For credit batches, check the ghg_statement step (final step)
+  const needsSync = await findEntitiesNeedingSync(
+    'credit_batch',
+    'ghg_statement',
+    pendingBatches.map((b) => b.id),
+    opts
+  );
 
-  for (const batch of pendingBatches) {
+  stats.total = needsSync.length;
+
+  for (const batchId of needsSync) {
     try {
-      const result = await isometricAdapter.syncGHGStatement(batch.id);
+      const result = await isometricAdapter.syncGHGStatement(batchId);
       if (result.success) {
         stats.succeeded++;
       } else {
         stats.failed++;
-        stats.errors.push({ id: batch.id, error: result.error || 'Unknown error' });
+        stats.errors.push({ id: batchId, error: result.error || 'Unknown error' });
         if (!opts.continueOnError) break;
       }
     } catch (error) {
       stats.failed++;
       stats.errors.push({
-        id: batch.id,
+        id: batchId,
         error: error instanceof Error ? error.message : String(error),
       });
       if (!opts.continueOnError) break;
@@ -307,7 +363,6 @@ export async function retryAllFailed(options: SyncOptions = {}): Promise<{
 
 /**
  * Confirm status of synced GHG Statements from Isometric
- *
  * Pulls back verification status and updates local records
  */
 export async function confirmGHGStatements(
@@ -318,25 +373,31 @@ export async function confirmGHGStatements(
 
   // Find credit batches that have been synced but not yet issued
   const syncedBatches = await db.query.creditBatches.findMany({
-    where: and(
-      eq(creditBatches.syncStatus, 'synced'),
-      or(eq(creditBatches.status, 'pending'), eq(creditBatches.status, 'verified'))
+    where: or(
+      eq(creditBatches.status, 'pending'),
+      eq(creditBatches.status, 'verified')
     ),
     limit: opts.limit,
   });
 
-  stats.total = syncedBatches.length;
-
+  // Filter to only those that have a GHG statement ID
   for (const batch of syncedBatches) {
-    if (!batch.isometricGhgStatementId) {
+    const ghgStatementId = await getExternalId(
+      'credit_batch',
+      batch.id,
+      'isometric',
+      'ghg_statement'
+    );
+
+    if (!ghgStatementId) {
       stats.skipped++;
       continue;
     }
 
+    stats.total++;
+
     try {
-      const result = await isometricAdapter.confirmGHGStatement(
-        batch.isometricGhgStatementId
-      );
+      const result = await isometricAdapter.confirmGHGStatement(ghgStatementId);
       if (result.success) {
         stats.succeeded++;
       } else {
@@ -359,6 +420,7 @@ export async function confirmGHGStatements(
 
 /**
  * Get summary of sync status across all entity types
+ * Uses registry_identities table for accurate counts
  */
 export async function getSyncSummary(): Promise<{
   facilities: { pending: number; syncing: number; synced: number; error: number };
@@ -367,35 +429,25 @@ export async function getSyncSummary(): Promise<{
   applications: { pending: number; syncing: number; synced: number; error: number };
   creditBatches: { pending: number; syncing: number; synced: number; error: number };
 }> {
-  const countByStatus = async (table: typeof facilities) => {
-    const all = await db.query.facilities.findMany();
+  const allIdentities = await db.query.registryIdentities.findMany({
+    where: eq(registryIdentities.registryName, 'isometric'),
+  });
+
+  const countByStatus = (entityType: string) => {
+    const filtered = allIdentities.filter((i) => i.entityType === entityType);
     return {
-      pending: all.filter((r) => r.syncStatus === 'pending').length,
-      syncing: all.filter((r) => r.syncStatus === 'syncing').length,
-      synced: all.filter((r) => r.syncStatus === 'synced').length,
-      error: all.filter((r) => r.syncStatus === 'error').length,
+      pending: filtered.filter((i) => i.syncStatus === 'pending').length,
+      syncing: filtered.filter((i) => i.syncStatus === 'syncing').length,
+      synced: filtered.filter((i) => i.syncStatus === 'synced').length,
+      error: filtered.filter((i) => i.syncStatus === 'error').length,
     };
   };
 
-  // Note: This is a simplified implementation. For production, use proper COUNT queries.
-  const facilitiesData = await db.query.facilities.findMany();
-  const feedstockData = await db.query.feedstockTypes.findMany();
-  const productionData = await db.query.productionRuns.findMany();
-  const applicationData = await db.query.applications.findMany();
-  const creditData = await db.query.creditBatches.findMany();
-
-  const countStatus = (data: Array<{ syncStatus: string | null }>) => ({
-    pending: data.filter((r) => r.syncStatus === 'pending').length,
-    syncing: data.filter((r) => r.syncStatus === 'syncing').length,
-    synced: data.filter((r) => r.syncStatus === 'synced').length,
-    error: data.filter((r) => r.syncStatus === 'error').length,
-  });
-
   return {
-    facilities: countStatus(facilitiesData),
-    feedstockTypes: countStatus(feedstockData),
-    productionRuns: countStatus(productionData),
-    applications: countStatus(applicationData),
-    creditBatches: countStatus(creditData),
+    facilities: countByStatus('facility'),
+    feedstockTypes: countByStatus('feedstock_type'),
+    productionRuns: countByStatus('production_run'),
+    applications: countByStatus('application'),
+    creditBatches: countByStatus('credit_batch'),
   };
 }

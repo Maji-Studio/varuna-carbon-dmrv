@@ -7,39 +7,71 @@ The Isometric adapter provides a registry-agnostic pattern for syncing local DMR
 ```
 Component → hooks/ → fn/ → adapters/isometric/ → lib/isometric/client.ts
                               ↓
-                          data-access/
+                          registry_identities (sidecar table)
 ```
 
-The adapter sits between business logic (`fn/`) and the low-level API client (`lib/isometric/`).
+The adapter sits between business logic (`fn/`) and the low-level API client (`lib/isometric/`). Sync state is tracked in a polymorphic `registry_identities` table, keeping core entity tables clean.
+
+## Registry Identities Table
+
+Instead of embedding registry-specific fields in each entity table, sync state is tracked in a single polymorphic table:
+
+```typescript
+// src/db/schema/registry.ts
+export const registryIdentities = pgTable('registry_identities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Local entity reference (polymorphic)
+  entityType: text('entity_type').notNull(),    // 'facility', 'production_run', etc.
+  entityId: uuid('entity_id').notNull(),
+
+  // Registry details
+  registryName: text('registry_name').notNull(), // 'isometric', 'puro', 'verra'
+  externalEntityType: text('external_entity_type').notNull(), // 'facility', 'storage_location', etc.
+  externalId: text('external_id'),               // ID from external registry
+
+  // Sync tracking
+  syncStatus: syncStatus('sync_status').default('pending').notNull(),
+  lastSyncedAt: timestamp('last_synced_at'),
+  lastSyncError: text('last_sync_error'),
+  metadata: jsonb('metadata'),
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+```
+
+### Why a Sidecar Table?
+
+1. **Registry-agnostic core**: Entity tables remain clean without `isometricXxxId`, `puroXxxId`, etc.
+2. **Multi-step sync support**: Some entities create multiple external objects (e.g., application → storage_location + biochar_application)
+3. **Partial sync recovery**: If step 1 succeeds but step 2 fails, retry only retries step 2
+4. **Multi-registry support**: Same table works for Isometric, Puro, Verra, etc.
 
 ## Data Model Mapping
 
-| Varuna Entity | Isometric Entity | Sync Direction |
-|---------------|------------------|----------------|
-| `facilities` | Facility | Push |
-| `feedstockTypes` | FeedstockType | Push |
-| `productionRuns` | ProductionBatch | Push |
-| `applications` | StorageLocation + BiocharApplication | Push |
-| `creditBatches` | GHGStatement (+ Removals) | Push + Pull confirmation |
+| Local Entity | Registry | External Entity Types | Rows Created |
+|--------------|----------|----------------------|--------------|
+| `facility` | Isometric | `facility` | 1 |
+| `feedstock_type` | Isometric | `feedstock_type` | 1 |
+| `production_run` | Isometric | `production_batch` | 1 |
+| `application` | Isometric | `storage_location`, `biochar_application` | 2 |
+| `credit_batch` | Isometric | `removal`, `ghg_statement` | 2 |
 
-## Sync Tracking Fields
+## Sync Status Flow
 
-Each syncable table has these tracking fields:
-
-```typescript
-// Added to: facilities, feedstockTypes, productionRuns, applications, creditBatches
-syncStatus: 'pending' | 'syncing' | 'synced' | 'error'
-lastSyncedAt: timestamp | null
-lastSyncError: text | null
-
-// Isometric-specific IDs (varies by table)
-isometricFacilityId: text | null  // facilities
-isometricFeedstockTypeId: text | null  // feedstockTypes
-isometricProductionBatchId: text | null  // productionRuns
-isometricStorageLocationId: text | null  // applications
-isometricBiocharApplicationId: text | null  // applications
-isometricGhgStatementId: text | null  // creditBatches
 ```
+pending → syncing → synced
+              ↓
+            error → syncing (retry)
+```
+
+| Status | Meaning |
+|--------|---------|
+| `pending` | Not yet synced, ready for sync |
+| `syncing` | Sync in progress |
+| `synced` | Successfully synced, `externalId` populated |
+| `error` | Sync failed, `lastSyncError` contains message |
 
 ## Sync Triggers
 
@@ -61,7 +93,7 @@ import { isometricAdapter } from '@/lib/adapters/isometric';
 // Sync a facility
 const result = await isometricAdapter.syncFacility(facilityId);
 if (result.success) {
-  console.log('Synced:', result.registryId);
+  console.log('Synced to Isometric:', result.registryId);
 } else {
   console.error('Failed:', result.error);
 }
@@ -87,6 +119,43 @@ console.log('Applications:', stats.applications.failed, 'failed');
 const retryStats = await retryAllFailed();
 ```
 
+### Checking Sync Status
+
+```typescript
+import {
+  getExternalId,
+  isEntityFullySynced,
+  getEntitySyncSummary
+} from '@/lib/adapters';
+
+// Check if entity has an external ID
+const isometricFacilityId = await getExternalId(
+  'facility',
+  facilityId,
+  'isometric',
+  'facility'
+);
+
+// Check if fully synced (all steps complete)
+const isSynced = await isEntityFullySynced(
+  'application',
+  applicationId,
+  'isometric'
+);
+
+// Get detailed sync status per step
+const summary = await getEntitySyncSummary(
+  'application',
+  applicationId,
+  'isometric'
+);
+// Returns:
+// {
+//   storage_location: { status: 'synced', externalId: 'stl_123' },
+//   biochar_application: { status: 'error', error: 'Validation failed' }
+// }
+```
+
 ### Confirmation Pulls
 
 ```typescript
@@ -106,13 +175,14 @@ if (result.success) {
 ### Sync Status Dashboard
 
 ```typescript
-import { getSyncSummary } from '@/lib/adapters/isometric';
+import { getRegistrySyncStats } from '@/lib/adapters';
 
-const summary = await getSyncSummary();
-// Returns counts by status for each entity type:
+const stats = await getRegistrySyncStats('isometric');
+// Returns:
 // {
-//   facilities: { pending: 2, syncing: 0, synced: 10, error: 1 },
-//   feedstockTypes: { ... },
+//   facility: { pending: 2, syncing: 0, synced: 10, error: 1 },
+//   feedstock_type: { ... },
+//   production_run: { ... },
 //   ...
 // }
 ```
@@ -146,12 +216,26 @@ export async function updateApplicationStatusFn(
 The adapter handles dependencies automatically:
 
 1. **syncProductionBatch** - First syncs the parent facility if needed
-2. **syncApplication** - Creates StorageLocation, then BiocharApplication
-3. **syncGHGStatement** - Syncs all linked applications as Removals first
+2. **syncApplication** - Creates StorageLocation first, then BiocharApplication
+3. **syncGHGStatement** - Creates Removal first, then GHG Statement
+
+### Partial Sync Recovery
+
+If a multi-step sync fails partway:
+
+```
+Application sync attempt 1:
+  ├─ storage_location → synced, externalId = "stl_abc123"
+  └─ biochar_application → error, externalId = null
+
+Application sync attempt 2 (retry):
+  ├─ storage_location → already synced, skip
+  └─ biochar_application → synced, externalId = "bap_xyz789"
+```
 
 ## Error Handling
 
-Failed syncs are recorded with:
+Failed syncs are recorded in `registry_identities`:
 - `syncStatus = 'error'`
 - `lastSyncError` = error message
 
@@ -191,7 +275,8 @@ To add a new registry (e.g., Puro.earth):
 
 1. Create `src/lib/adapters/puro/adapter.ts` implementing `RegistryAdapter`
 2. Add transformers for entity mappings
-3. The local schema remains unchanged - only add new registry-specific ID fields
+3. Update sync-config.ts with `PURO_EXTERNAL_ENTITY_TYPES`
+4. **No schema changes needed** - same `registry_identities` table
 
 ```typescript
 // src/lib/adapters/types.ts
@@ -211,8 +296,51 @@ export interface RegistryAdapter {
 
 | File | Purpose |
 |------|---------|
+| `src/db/schema/registry.ts` | Polymorphic `registry_identities` table |
 | `src/lib/adapters/types.ts` | Registry-agnostic interfaces |
+| `src/lib/adapters/sync-config.ts` | Entity-to-external-type mappings |
+| `src/lib/adapters/registry-identity-service.ts` | CRUD for registry sync state |
+| `src/lib/adapters/sync-helpers.ts` | Utility functions |
 | `src/lib/adapters/isometric/adapter.ts` | Main `IsometricAdapter` class |
 | `src/lib/adapters/isometric/sync.ts` | Batch sync & retry orchestration |
 | `src/lib/adapters/isometric/transformers/*.ts` | Data transformation functions |
-| `src/db/schema/common.ts` | `syncStatus` enum definition |
+
+## Registry Identity Service API
+
+```typescript
+import {
+  getOrCreateRegistryIdentity,
+  getExternalId,
+  markSyncing,
+  markSynced,
+  markError,
+} from '@/lib/adapters/registry-identity-service';
+
+// Get or create a registry identity row
+const identity = await getOrCreateRegistryIdentity(
+  'facility',           // entityType
+  facilityId,           // entityId
+  'isometric',          // registryName
+  'facility'            // externalEntityType
+);
+
+// Mark as syncing before API call
+await markSyncing(identity.id);
+
+// On success
+await markSynced(identity.id, 'fac_123', { projectId: 'proj_456' });
+
+// On failure
+await markError(identity.id, 'API returned 400: Invalid payload');
+
+// Check if already synced
+const externalId = await getExternalId(
+  'facility',
+  facilityId,
+  'isometric',
+  'facility'
+);
+if (externalId) {
+  console.log('Already synced:', externalId);
+}
+```

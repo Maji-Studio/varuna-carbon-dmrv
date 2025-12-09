@@ -1,9 +1,10 @@
 import { pgTable, text, timestamp, uuid, real } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { storageLocationType, syncStatus } from './common';
+import { storageLocationType } from './common';
 
 // ============================================
 // Facilities - Production sites
+// Registry sync tracking moved to registry_identities table
 // ============================================
 
 export const facilities = pgTable('facilities', {
@@ -12,14 +13,6 @@ export const facilities = pgTable('facilities', {
   location: text('location'),
   gpsLat: real('gps_lat'),
   gpsLng: real('gps_lng'),
-  // --- Isometric Sync ID ---
-  isometricFacilityId: text('isometric_facility_id'),
-
-  // --- Registry Sync Tracking ---
-  // Tracks synchronization state with external registries (Isometric, Puro, etc.)
-  syncStatus: syncStatus('sync_status').default('pending'),
-  lastSyncedAt: timestamp('last_synced_at'),
-  lastSyncError: text('last_sync_error'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

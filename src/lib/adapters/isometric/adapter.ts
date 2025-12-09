@@ -7,7 +7,7 @@
  * This adapter handles:
  * - Transforming local data to Isometric format
  * - Creating/updating entities in Isometric
- * - Tracking sync status in local database
+ * - Tracking sync status via registry_identities table
  * - Pulling back confirmation data from Isometric
  */
 
@@ -23,6 +23,13 @@ import {
 import { isometric } from '@/lib/isometric';
 import type { RegistryAdapter, SyncResult, AdapterConfig } from '../types';
 import * as transformers from './transformers';
+import {
+  getOrCreateRegistryIdentity,
+  getExternalId,
+  markSyncing,
+  markSynced,
+  markError,
+} from '../registry-identity-service';
 
 /**
  * Default configuration for the Isometric adapter
@@ -38,6 +45,7 @@ const DEFAULT_CONFIG: AdapterConfig = {
  * Isometric Registry Adapter
  *
  * Syncs local biochar DMRV data to Isometric for carbon credit verification.
+ * Uses registry_identities table for tracking sync state.
  */
 export class IsometricAdapter implements RegistryAdapter {
   readonly name = 'isometric';
@@ -74,11 +82,18 @@ export class IsometricAdapter implements RegistryAdapter {
         return { success: false, error: 'Facility not found' };
       }
 
-      // 2. Skip if already synced
-      if (facility.isometricFacilityId) {
+      // 2. Check if already synced via registry_identities
+      const existingId = await getExternalId(
+        'facility',
+        facilityId,
+        'isometric',
+        'facility'
+      );
+
+      if (existingId) {
         return {
           success: true,
-          registryId: facility.isometricFacilityId,
+          registryId: existingId,
           data: { alreadySynced: true },
         };
       }
@@ -89,11 +104,14 @@ export class IsometricAdapter implements RegistryAdapter {
         return { success: false, error: validation.errors.join('; ') };
       }
 
-      // 4. Mark as syncing
-      await db
-        .update(facilities)
-        .set({ syncStatus: 'syncing' })
-        .where(eq(facilities.id, facilityId));
+      // 4. Get or create registry identity and mark as syncing
+      const identity = await getOrCreateRegistryIdentity(
+        'facility',
+        facilityId,
+        'isometric',
+        'facility'
+      );
+      await markSyncing(identity.id);
 
       // 5. Transform and send to Isometric
       const payload = transformers.transformFacilityToIsometric(facility);
@@ -103,20 +121,13 @@ export class IsometricAdapter implements RegistryAdapter {
       // const result = await isometric.createFacility(payload);
 
       // TODO: Uncomment when createFacility is available in the client
-      // For now, return a mock to demonstrate the pattern
       console.log('Would create facility in Isometric:', payload);
       const mockResult = { id: `fac_mock_${Date.now()}` };
 
-      // 6. Update local record with Isometric ID
-      await db
-        .update(facilities)
-        .set({
-          isometricFacilityId: mockResult.id,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date(),
-          lastSyncError: null,
-        })
-        .where(eq(facilities.id, facilityId));
+      // 6. Update registry identity with Isometric ID
+      await markSynced(identity.id, mockResult.id, {
+        projectId: this.config.projectId,
+      });
 
       return {
         success: true,
@@ -124,15 +135,17 @@ export class IsometricAdapter implements RegistryAdapter {
         data: mockResult,
       };
     } catch (error) {
-      // Record error for retry
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      await db
-        .update(facilities)
-        .set({
-          syncStatus: 'error',
-          lastSyncError: errorMessage,
-        })
-        .where(eq(facilities.id, facilityId));
+      // Record error in registry identity
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      const identity = await getOrCreateRegistryIdentity(
+        'facility',
+        facilityId,
+        'isometric',
+        'facility'
+      );
+      await markError(identity.id, errorMessage);
 
       return { success: false, error: errorMessage };
     }
@@ -152,39 +165,44 @@ export class IsometricAdapter implements RegistryAdapter {
         return { success: false, error: 'Feedstock type not found' };
       }
 
-      if (feedstockType.isometricFeedstockTypeId) {
+      // Check if already synced
+      const existingId = await getExternalId(
+        'feedstock_type',
+        feedstockTypeId,
+        'isometric',
+        'feedstock_type'
+      );
+
+      if (existingId) {
         return {
           success: true,
-          registryId: feedstockType.isometricFeedstockTypeId,
+          registryId: existingId,
           data: { alreadySynced: true },
         };
       }
 
-      const validation = transformers.validateFeedstockTypeForSync(feedstockType);
+      const validation =
+        transformers.validateFeedstockTypeForSync(feedstockType);
       if (!validation.valid) {
         return { success: false, error: validation.errors.join('; ') };
       }
 
-      await db
-        .update(feedstockTypes)
-        .set({ syncStatus: 'syncing' })
-        .where(eq(feedstockTypes.id, feedstockTypeId));
+      const identity = await getOrCreateRegistryIdentity(
+        'feedstock_type',
+        feedstockTypeId,
+        'isometric',
+        'feedstock_type'
+      );
+      await markSyncing(identity.id);
 
-      const payload = transformers.transformFeedstockTypeToIsometric(feedstockType);
+      const payload =
+        transformers.transformFeedstockTypeToIsometric(feedstockType);
 
       // TODO: Use actual API call when available
       console.log('Would create feedstock type in Isometric:', payload);
       const mockResult = { id: `fst_mock_${Date.now()}` };
 
-      await db
-        .update(feedstockTypes)
-        .set({
-          isometricFeedstockTypeId: mockResult.id,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date(),
-          lastSyncError: null,
-        })
-        .where(eq(feedstockTypes.id, feedstockTypeId));
+      await markSynced(identity.id, mockResult.id);
 
       return {
         success: true,
@@ -192,14 +210,16 @@ export class IsometricAdapter implements RegistryAdapter {
         data: mockResult,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      await db
-        .update(feedstockTypes)
-        .set({
-          syncStatus: 'error',
-          lastSyncError: errorMessage,
-        })
-        .where(eq(feedstockTypes.id, feedstockTypeId));
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      const identity = await getOrCreateRegistryIdentity(
+        'feedstock_type',
+        feedstockTypeId,
+        'isometric',
+        'feedstock_type'
+      );
+      await markError(identity.id, errorMessage);
 
       return { success: false, error: errorMessage };
     }
@@ -222,21 +242,37 @@ export class IsometricAdapter implements RegistryAdapter {
         return { success: false, error: 'Production run not found' };
       }
 
-      if (productionRun.isometricProductionBatchId) {
+      // Check if already synced
+      const existingId = await getExternalId(
+        'production_run',
+        productionRunId,
+        'isometric',
+        'production_batch'
+      );
+
+      if (existingId) {
         return {
           success: true,
-          registryId: productionRun.isometricProductionBatchId,
+          registryId: existingId,
           data: { alreadySynced: true },
         };
       }
 
-      const validation = transformers.validateProductionRunForSync(productionRun);
+      const validation =
+        transformers.validateProductionRunForSync(productionRun);
       if (!validation.valid) {
         return { success: false, error: validation.errors.join('; ') };
       }
 
       // Ensure facility is synced first
-      if (!productionRun.facility?.isometricFacilityId) {
+      const facilityExternalId = await getExternalId(
+        'facility',
+        productionRun.facilityId,
+        'isometric',
+        'facility'
+      );
+
+      if (!facilityExternalId) {
         const facilitySync = await this.syncFacility(productionRun.facilityId);
         if (!facilitySync.success) {
           return {
@@ -247,25 +283,34 @@ export class IsometricAdapter implements RegistryAdapter {
       }
 
       // Get the facility's Isometric ID (may have just been created)
-      const updatedFacility = await db.query.facilities.findFirst({
-        where: eq(facilities.id, productionRun.facilityId),
-      });
+      const updatedFacilityId = await getExternalId(
+        'facility',
+        productionRun.facilityId,
+        'isometric',
+        'facility'
+      );
 
-      if (!updatedFacility?.isometricFacilityId) {
-        return { success: false, error: 'Facility Isometric ID not found after sync' };
+      if (!updatedFacilityId) {
+        return {
+          success: false,
+          error: 'Facility Isometric ID not found after sync',
+        };
       }
 
-      await db
-        .update(productionRuns)
-        .set({ syncStatus: 'syncing' })
-        .where(eq(productionRuns.id, productionRunId));
+      const identity = await getOrCreateRegistryIdentity(
+        'production_run',
+        productionRunId,
+        'isometric',
+        'production_batch'
+      );
+      await markSyncing(identity.id);
 
       // TODO: Get feedstock type IDs (need to sync feedstock types first)
       const feedstockTypeIds: string[] = [];
 
       const payload = transformers.transformProductionRunToIsometric(
         productionRun,
-        updatedFacility.isometricFacilityId,
+        updatedFacilityId,
         feedstockTypeIds
       );
 
@@ -273,15 +318,9 @@ export class IsometricAdapter implements RegistryAdapter {
       console.log('Would create production batch in Isometric:', payload);
       const mockResult = { id: `pbd_mock_${Date.now()}` };
 
-      await db
-        .update(productionRuns)
-        .set({
-          isometricProductionBatchId: mockResult.id,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date(),
-          lastSyncError: null,
-        })
-        .where(eq(productionRuns.id, productionRunId));
+      await markSynced(identity.id, mockResult.id, {
+        facilityExternalId: updatedFacilityId,
+      });
 
       return {
         success: true,
@@ -289,14 +328,16 @@ export class IsometricAdapter implements RegistryAdapter {
         data: mockResult,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      await db
-        .update(productionRuns)
-        .set({
-          syncStatus: 'error',
-          lastSyncError: errorMessage,
-        })
-        .where(eq(productionRuns.id, productionRunId));
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      const identity = await getOrCreateRegistryIdentity(
+        'production_run',
+        productionRunId,
+        'isometric',
+        'production_batch'
+      );
+      await markError(identity.id, errorMessage);
 
       return { success: false, error: errorMessage };
     }
@@ -320,10 +361,18 @@ export class IsometricAdapter implements RegistryAdapter {
         return { success: false, error: 'Application not found' };
       }
 
-      if (application.isometricBiocharApplicationId) {
+      // Check if fully synced (biochar_application is the final step)
+      const existingBiocharAppId = await getExternalId(
+        'application',
+        applicationId,
+        'isometric',
+        'biochar_application'
+      );
+
+      if (existingBiocharAppId) {
         return {
           success: true,
-          registryId: application.isometricBiocharApplicationId,
+          registryId: existingBiocharAppId,
           data: { alreadySynced: true },
         };
       }
@@ -333,28 +382,37 @@ export class IsometricAdapter implements RegistryAdapter {
         return { success: false, error: validation.errors.join('; ') };
       }
 
-      await db
-        .update(applications)
-        .set({ syncStatus: 'syncing' })
-        .where(eq(applications.id, applicationId));
-
       // Step 1: Create StorageLocation if needed
-      let storageLocationId = application.isometricStorageLocationId;
+      let storageLocationId = await getExternalId(
+        'application',
+        applicationId,
+        'isometric',
+        'storage_location'
+      );
+
       if (!storageLocationId) {
-        const storageLocationPayload = transformers.transformApplicationToStorageLocation(
-          application,
-          this.config.projectId
+        const storageIdentity = await getOrCreateRegistryIdentity(
+          'application',
+          applicationId,
+          'isometric',
+          'storage_location'
         );
+        await markSyncing(storageIdentity.id);
+
+        const storageLocationPayload =
+          transformers.transformApplicationToStorageLocation(
+            application,
+            this.config.projectId
+          );
 
         // TODO: Use actual API call
-        console.log('Would create storage location in Isometric:', storageLocationPayload);
+        console.log(
+          'Would create storage location in Isometric:',
+          storageLocationPayload
+        );
         storageLocationId = `sloc_mock_${Date.now()}`;
 
-        // Update the storage location ID
-        await db
-          .update(applications)
-          .set({ isometricStorageLocationId: storageLocationId })
-          .where(eq(applications.id, applicationId));
+        await markSynced(storageIdentity.id, storageLocationId);
       }
 
       // Step 2: Get production batch ID (need to trace back through delivery → order → product → production run)
@@ -362,26 +420,33 @@ export class IsometricAdapter implements RegistryAdapter {
       const productionBatchId = 'pbd_placeholder';
 
       // Step 3: Create BiocharApplication
-      const biocharApplicationPayload = transformers.transformApplicationToBiocharApplication(
-        application,
-        this.config.projectId,
-        storageLocationId,
-        productionBatchId
+      const biocharIdentity = await getOrCreateRegistryIdentity(
+        'application',
+        applicationId,
+        'isometric',
+        'biochar_application'
       );
+      await markSyncing(biocharIdentity.id);
+
+      const biocharApplicationPayload =
+        transformers.transformApplicationToBiocharApplication(
+          application,
+          this.config.projectId,
+          storageLocationId,
+          productionBatchId
+        );
 
       // TODO: Use actual API call
-      console.log('Would create biochar application in Isometric:', biocharApplicationPayload);
+      console.log(
+        'Would create biochar application in Isometric:',
+        biocharApplicationPayload
+      );
       const mockResult = { id: `bapp_mock_${Date.now()}` };
 
-      await db
-        .update(applications)
-        .set({
-          isometricBiocharApplicationId: mockResult.id,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date(),
-          lastSyncError: null,
-        })
-        .where(eq(applications.id, applicationId));
+      await markSynced(biocharIdentity.id, mockResult.id, {
+        storageLocationId,
+        productionBatchId,
+      });
 
       return {
         success: true,
@@ -392,14 +457,17 @@ export class IsometricAdapter implements RegistryAdapter {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      await db
-        .update(applications)
-        .set({
-          syncStatus: 'error',
-          lastSyncError: errorMessage,
-        })
-        .where(eq(applications.id, applicationId));
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Mark the step that failed (biochar_application is likely the one that failed)
+      const biocharIdentity = await getOrCreateRegistryIdentity(
+        'application',
+        applicationId,
+        'isometric',
+        'biochar_application'
+      );
+      await markError(biocharIdentity.id, errorMessage);
 
       return { success: false, error: errorMessage };
     }
@@ -419,10 +487,18 @@ export class IsometricAdapter implements RegistryAdapter {
         return { success: false, error: 'Credit batch not found' };
       }
 
-      if (creditBatch.isometricGhgStatementId) {
+      // Check if GHG statement already synced
+      const existingGhgId = await getExternalId(
+        'credit_batch',
+        creditBatchId,
+        'isometric',
+        'ghg_statement'
+      );
+
+      if (existingGhgId) {
         return {
           success: true,
-          registryId: creditBatch.isometricGhgStatementId,
+          registryId: existingGhgId,
           data: { alreadySynced: true },
         };
       }
@@ -432,12 +508,18 @@ export class IsometricAdapter implements RegistryAdapter {
         return { success: false, error: validation.errors.join('; ') };
       }
 
-      await db
-        .update(creditBatches)
-        .set({ syncStatus: 'syncing' })
-        .where(eq(creditBatches.id, creditBatchId));
+      // Step 1: Create Removal if needed (TODO: implement removal creation)
+      // For now, we skip to GHG statement
 
-      // Step 1: Create GHG Statement
+      // Step 2: Create GHG Statement
+      const ghgIdentity = await getOrCreateRegistryIdentity(
+        'credit_batch',
+        creditBatchId,
+        'isometric',
+        'ghg_statement'
+      );
+      await markSyncing(ghgIdentity.id);
+
       const ghgStatementPayload = transformers.transformCreditBatchToGHGStatement(
         creditBatch,
         this.config.projectId
@@ -446,19 +528,15 @@ export class IsometricAdapter implements RegistryAdapter {
       const ghgStatement = await isometric.createGHGStatement({
         project_id: this.config.projectId,
         removal_ids: [], // Will be populated after removals are created
-        reporting_period_start: creditBatch.startDate?.toISOString().split('T')[0] || '',
-        reporting_period_end: creditBatch.endDate?.toISOString().split('T')[0] || '',
+        reporting_period_start:
+          creditBatch.startDate?.toISOString().split('T')[0] || '',
+        reporting_period_end:
+          creditBatch.endDate?.toISOString().split('T')[0] || '',
       });
 
-      await db
-        .update(creditBatches)
-        .set({
-          isometricGhgStatementId: ghgStatement.id,
-          syncStatus: 'synced',
-          lastSyncedAt: new Date(),
-          lastSyncError: null,
-        })
-        .where(eq(creditBatches.id, creditBatchId));
+      await markSynced(ghgIdentity.id, ghgStatement.id, {
+        projectId: this.config.projectId,
+      });
 
       return {
         success: true,
@@ -466,14 +544,16 @@ export class IsometricAdapter implements RegistryAdapter {
         data: ghgStatement,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      await db
-        .update(creditBatches)
-        .set({
-          syncStatus: 'error',
-          lastSyncError: errorMessage,
-        })
-        .where(eq(creditBatches.id, creditBatchId));
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      const ghgIdentity = await getOrCreateRegistryIdentity(
+        'credit_batch',
+        creditBatchId,
+        'isometric',
+        'ghg_statement'
+      );
+      await markError(ghgIdentity.id, errorMessage);
 
       return { success: false, error: errorMessage };
     }
@@ -495,7 +575,8 @@ export class IsometricAdapter implements RegistryAdapter {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return { success: false, error: errorMessage };
     }
   }
@@ -505,21 +586,23 @@ export class IsometricAdapter implements RegistryAdapter {
       const statement = await isometric.getGHGStatement(registryStatementId);
 
       // Update local credit batch status based on Isometric status
-      const localStatus = transformers.mapGHGStatementStatusToLocal(statement.status);
+      const localStatus = transformers.mapGHGStatementStatusToLocal(
+        statement.status
+      );
 
-      // Find and update the local credit batch
-      const localBatch = await db.query.creditBatches.findFirst({
-        where: eq(creditBatches.isometricGhgStatementId, registryStatementId),
+      // Find the local credit batch via registry identity
+      const { registryIdentities } = await import('@/db/schema');
+      const identity = await db.query.registryIdentities.findFirst({
+        where: eq(registryIdentities.externalId, registryStatementId),
       });
 
-      if (localBatch) {
+      if (identity) {
         await db
           .update(creditBatches)
           .set({
             status: localStatus,
-            lastSyncedAt: new Date(),
           })
-          .where(eq(creditBatches.id, localBatch.id));
+          .where(eq(creditBatches.id, identity.entityId));
       }
 
       return {
@@ -533,7 +616,8 @@ export class IsometricAdapter implements RegistryAdapter {
         },
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return { success: false, error: errorMessage };
     }
   }

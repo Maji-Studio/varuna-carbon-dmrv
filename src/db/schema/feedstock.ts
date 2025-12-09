@@ -1,23 +1,17 @@
 import { pgTable, text, timestamp, uuid, real, date } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { feedstockStatus, syncStatus } from './common';
+import { feedstockStatus } from './common';
 import { facilities, storageLocations } from './facilities';
 import { suppliers, drivers } from './parties';
 
 // ============================================
 // Feedstock Types - Biomass classification
+// Registry sync tracking moved to registry_identities table
 // ============================================
 
 export const feedstockTypes = pgTable('feedstock_types', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(), // e.g., "Mixed Wood Chips", "Hardwood"
-  // --- Isometric Sync ID ---
-  isometricFeedstockTypeId: text('isometric_feedstock_type_id'),
-
-  // --- Registry Sync Tracking ---
-  syncStatus: syncStatus('sync_status').default('pending'),
-  lastSyncedAt: timestamp('last_synced_at'),
-  lastSyncError: text('last_sync_error'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

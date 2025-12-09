@@ -29,7 +29,8 @@ src/db/
     ├── logistics.ts      # Orders, deliveries, transport legs
     ├── application.ts    # Field applications, soil temperature
     ├── credits.ts        # Credit batches, lab analyses
-    └── documentation.ts  # Polymorphic attachments
+    ├── documentation.ts  # Polymorphic attachments
+    └── registry.ts       # Registry sync tracking (polymorphic)
 ```
 
 ## Entity Relationship Diagram
@@ -52,7 +53,7 @@ src/db/
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Tables (26 total)
+## Tables (27 total)
 
 ### Core Infrastructure
 
@@ -107,6 +108,7 @@ src/db/
 |-------|-------------|
 | `documentation` | Polymorphic attachments (photos, videos, PDFs) |
 | `credit_batch_applications` | Junction table (M:M) |
+| `registry_identities` | Polymorphic registry sync tracking (multi-registry) |
 | `users` | User accounts |
 
 ## Isometric Protocol Compliance Fields
@@ -327,7 +329,7 @@ CO2e_stored = C_biochar × m_biochar × F_durable × 44.01/12.01
 | `delivery_status` | processing, delivered | deliveries |
 | `application_status` | delivered, applied | applications |
 | `credit_batch_status` | pending, verified, issued | credit_batches |
-| `sync_status` | pending, syncing, synced, error | facilities, feedstock_types, production_runs, applications, credit_batches |
+| `sync_status` | pending, syncing, synced, error | registry_identities |
 
 ### Type Enums
 
@@ -350,27 +352,53 @@ CO2e_stored = C_biochar × m_biochar × F_durable × 44.01/12.01
 
 ## Registry Sync Tracking
 
-Tables that sync to external registries (Isometric, etc.) include tracking fields:
+Sync state for external registries (Isometric, Puro, Verra, etc.) is tracked in a single polymorphic table rather than embedding registry-specific fields in each entity table. This keeps core domain tables clean and supports multiple registries.
 
-### Sync Status Fields (Common)
+### registry_identities Table
 
 ```typescript
-// Added to: facilities, feedstockTypes, productionRuns, applications, creditBatches
-syncStatus: syncStatus('sync_status').default('pending')  // pending | syncing | synced | error
-lastSyncedAt: timestamp('last_synced_at')                 // Last successful sync time
-lastSyncError: text('last_sync_error')                    // Error message if sync failed
+// src/db/schema/registry.ts
+export const registryIdentities = pgTable('registry_identities', {
+  id: uuid('id').primaryKey().defaultRandom(),
+
+  // Local entity reference (polymorphic)
+  entityType: text('entity_type').notNull(),    // 'facility', 'production_run', etc.
+  entityId: uuid('entity_id').notNull(),
+
+  // Registry details
+  registryName: text('registry_name').notNull(), // 'isometric', 'puro', 'verra'
+  externalEntityType: text('external_entity_type').notNull(), // 'facility', 'storage_location'
+  externalId: text('external_id'),               // ID from external registry
+
+  // Sync tracking
+  syncStatus: syncStatus('sync_status').default('pending').notNull(),
+  lastSyncedAt: timestamp('last_synced_at'),
+  lastSyncError: text('last_sync_error'),
+  metadata: jsonb('metadata'),                   // Registry-specific data
+
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
 ```
 
-### Isometric Registry IDs (Entity-Specific)
+### Entity-to-External-Type Mapping
 
-| Table | Isometric ID Field | Isometric Entity |
-|-------|-------------------|------------------|
-| `facilities` | `isometric_facility_id` | Facility |
-| `feedstock_types` | `isometric_feedstock_type_id` | FeedstockType |
-| `production_runs` | `isometric_production_batch_id` | ProductionBatch |
-| `applications` | `isometric_storage_location_id` | StorageLocation |
-| `applications` | `isometric_biochar_application_id` | BiocharApplication |
-| `credit_batches` | `isometric_ghg_statement_id` | GHGStatement |
+| Local Entity | Registry | External Entity Types | Rows Created |
+|--------------|----------|----------------------|--------------|
+| `facility` | Isometric | `facility` | 1 |
+| `feedstock_type` | Isometric | `feedstock_type` | 1 |
+| `production_run` | Isometric | `production_batch` | 1 |
+| `application` | Isometric | `storage_location`, `biochar_application` | 2 |
+| `credit_batch` | Isometric | `removal`, `ghg_statement` | 2 |
+
+### Sync Status Enum
+
+| Status | Meaning |
+|--------|---------|
+| `pending` | Not yet synced, ready for sync |
+| `syncing` | Sync in progress |
+| `synced` | Successfully synced, `externalId` populated |
+| `error` | Sync failed, `lastSyncError` contains message |
 
 See [isometric-adapter.md](./isometric-adapter.md) for adapter usage.
 
