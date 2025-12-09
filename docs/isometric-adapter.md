@@ -106,6 +106,68 @@ The key component for CO2 calculation is **"CO₂ stored from biochar applicatio
 - `carbon_content` - Organic carbon fraction (dimensionless)
 - `product_mass` - Mass of biochar in kg
 
+## Multi-Source Blending
+
+When a credit batch contains biochar from **multiple production runs** (a "Storage Batch" in Isometric terminology), the adapter automatically aggregates data following Isometric Protocol v1.2.
+
+### Aggregation Rules
+
+| Field | Aggregation Method | Description |
+|-------|-------------------|-------------|
+| `carbon_content` | Mass-weighted average | `SUM(carbon_p × mass_p) / SUM(mass_p)` |
+| `product_mass` | Sum | Total biochar mass across all runs |
+| `volume_of_fuel` | Sum | Total diesel usage |
+| `electricity_use` | Sum | Total electricity usage |
+| `feedstock_mass` | Sum | Total feedstock mass |
+| `H:Corg ratio` | Mass-weighted average | Weighted by biochar mass |
+| `O:Corg ratio` | Mass-weighted average | Weighted by biochar mass |
+
+### Isometric Protocol v1.2 Formula
+
+```
+CO2e_Stored = SUM(C_biochar,p × m_biochar,p / 100) × 44.01/12.01
+```
+
+Where:
+- `p` = Production Batch identifier
+- `C_biochar,p` = carbon concentration (weight %) from production batch p
+- `m_biochar,p` = mass of biochar from production batch p
+
+### Sample Handling
+
+For each production run, sample values are averaged, then mass-weighted across runs:
+
+1. **Per-run average**: `run_carbon = AVG(sample_1, sample_2, ..., sample_n)`
+2. **Cross-run weighting**: `weighted_carbon = SUM(run_carbon × run_mass) / SUM(run_mass)`
+
+### Validation
+
+The adapter validates multi-source data before sync:
+
+| Condition | Result |
+|-----------|--------|
+| Missing `biocharAmountKg` on any run | ERROR - required for weighting |
+| Missing samples on any run | WARNING |
+| Carbon variance >20% across runs | WARNING - heterogeneous blend |
+| Weighted H:Corg >= 0.5 | ERROR - fails durability |
+| Weighted O:Corg >= 0.2 | ERROR - fails durability |
+
+### Logging
+
+When multiple production runs are detected:
+
+```
+Multi-source blend detected: 3 production runs
+Source IDs: abc-123, def-456, ghi-789
+Weighted carbon content: 72.45%
+Total biochar mass: 1500 kg
+```
+
+### Code Location
+
+- Aggregation utilities: `src/lib/adapters/isometric/utils/aggregation.ts`
+- Aggregated mapping: `src/lib/adapters/isometric/transformers/removal.ts`
+
 ## Validation
 
 Before syncing, the mapper validates:

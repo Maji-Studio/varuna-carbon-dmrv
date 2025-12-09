@@ -22,6 +22,7 @@ import {
 } from "@/db/schema";
 import { isometric } from "@/lib/isometric";
 import * as transformers from "./transformers";
+import * as aggregation from "./utils/aggregation";
 import { serverEnv } from "@/config/env.server";
 
 // ============================================
@@ -324,7 +325,9 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
     }
 
     // Step 2: Load related data via FK chain traversal
-    // Chain: CreditBatch → Application → Delivery → BiocharProduct → ProductionRun → Samples
+    // Chain: CreditBatch → Application → Delivery → BiocharProduct → ProductionRun
+    // Note: Samples are loaded separately to avoid PostgreSQL identifier length limits
+    // (deeply nested Drizzle queries generate very long aliases that get truncated)
     const batchApplications = await db.query.creditBatchApplications.findMany({
       where: eq(creditBatchApplications.creditBatchId, creditBatchId),
       with: {
@@ -334,11 +337,7 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
               with: {
                 biocharProduct: {
                   with: {
-                    linkedProductionRun: {
-                      with: {
-                        samples: true,
-                      },
-                    },
+                    linkedProductionRun: true,
                   },
                 },
               },
@@ -370,40 +369,63 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
 
     const application = validApplications[0].application;
 
-    // Extract unique production runs from FK chain
-    // Type: non-null production run with samples (validated above)
-    type ProductionRunWithSamples = NonNullable<
-      NonNullable<
-        NonNullable<typeof validApplications[0]["application"]["delivery"]>["biocharProduct"]
-      >["linkedProductionRun"]
-    >;
-    const productionRunsMap = new Map<string, ProductionRunWithSamples>();
+    // Extract unique production run IDs from FK chain
+    const productionRunIds = new Set<string>();
     for (const ba of validApplications) {
       const pr = ba.application.delivery!.biocharProduct!.linkedProductionRun!;
-      productionRunsMap.set(pr.id, pr);
+      productionRunIds.add(pr.id);
     }
 
-    if (productionRunsMap.size === 0) {
+    if (productionRunIds.size === 0) {
       return { success: false, error: "Credit batch has no linked production runs" };
     }
 
-    // For now, use first production run (can aggregate data from multiple runs later)
-    const productionRun = [...productionRunsMap.values()][0];
+    // Load production runs with samples separately to avoid identifier length issues
+    const allProductionRuns = await Promise.all(
+      [...productionRunIds].map(async (prId) => {
+        const pr = await db.query.productionRuns.findFirst({
+          where: eq(productionRuns.id, prId),
+          with: { samples: true },
+        });
+        return pr!;
+      })
+    );
 
-    if (!productionRun.samples || productionRun.samples.length === 0) {
-      return { success: false, error: "Production run has no samples" };
+    // Validate aggregation inputs before proceeding
+    const aggValidation = aggregation.validateAggregationInputs(allProductionRuns);
+    if (!aggValidation.valid) {
+      return { success: false, error: `Aggregation validation failed: ${aggValidation.errors.join("; ")}` };
     }
 
-    const sample = productionRun.samples[0];
+    // Log aggregation warnings
+    if (aggValidation.warnings.length > 0) {
+      console.warn("Aggregation warnings:", aggValidation.warnings);
+    }
 
-    // Validate local data for removal
-    const localData: transformers.RemovalLocalData = {
-      productionRun,
-      sample,
+    // Aggregate production run data (supports multi-source blending)
+    const aggregatedData = aggregation.aggregateProductionRuns(allProductionRuns);
+
+    // Log multi-source blending info
+    if (allProductionRuns.length > 1) {
+      console.log(`Multi-source blend detected: ${allProductionRuns.length} production runs`);
+      console.log(`Source IDs: ${aggregatedData.sourceProductionRunIds.join(", ")}`);
+      console.log(`Weighted carbon content: ${(aggregatedData.weightedCarbonContent * 100).toFixed(2)}%`);
+      console.log(`Total biochar mass: ${aggregatedData.totalBiocharMassKg} kg`);
+    }
+
+    // Collect all samples for audit trail
+    const allSamples = allProductionRuns.flatMap(pr => pr.samples || []);
+
+    // Create aggregated local data
+    const aggregatedLocalData: transformers.AggregatedRemovalLocalData = {
+      aggregated: aggregatedData,
       application,
+      sourceProductionRuns: allProductionRuns,
+      sourceSamples: allSamples,
     };
 
-    const dataValidation = transformers.validateLocalDataForRemoval(localData);
+    // Validate aggregated data for removal
+    const dataValidation = transformers.validateAggregatedDataForRemoval(aggregatedLocalData);
     if (!dataValidation.valid) {
       return { success: false, error: `Data validation failed: ${dataValidation.errors.join("; ")}` };
     }
@@ -416,10 +438,10 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
     // Step 3: Fetch removal template to understand component structure
     const template = await isometric.getRemovalTemplate(projectId, removalTemplateId);
 
-    // Step 4: Map local data to template component inputs
-    const removalTemplateComponents = transformers.mapRemovalTemplateComponents(template, localData);
+    // Step 4: Map aggregated data to template component inputs
+    const removalTemplateComponents = transformers.mapAggregatedRemovalTemplateComponents(template, aggregatedLocalData);
 
-    console.log("Removal data summary:", transformers.getRemovalDataSummary(localData));
+    console.log("Removal data summary:", transformers.getAggregatedRemovalDataSummary(aggregatedLocalData));
     console.log("Mapped components:", JSON.stringify(removalTemplateComponents, null, 2));
 
     // Step 5: Create Removal with actual data
