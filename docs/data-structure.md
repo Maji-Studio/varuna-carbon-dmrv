@@ -52,7 +52,7 @@ src/db/
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Tables (26 total)
+## Tables (25 total)
 
 ### Core Infrastructure
 
@@ -346,6 +346,22 @@ CO2e_stored = C_biochar × m_biochar × F_durable × 44.01/12.01
 | `transport_entity_type` | feedstock, biochar, sample, delivery | transport_legs | Transportation Module |
 | `transport_method` | road, rail, ship, pipeline, aircraft | transport_legs | Transportation Module |
 | `emissions_calculation_method` | energy_usage, distance_based | transport_legs | Section 3.2, 3.3 |
+
+## Isometric Sync Tracking
+
+Isometric IDs are stored directly on entity tables for simplicity:
+
+| Table | Column(s) |
+|-------|-----------|
+| `facilities` | `isometric_facility_id` |
+| `feedstock_types` | `isometric_feedstock_type_id` |
+| `production_runs` | `isometric_production_batch_id` |
+| `applications` | `isometric_storage_location_id`, `isometric_biochar_application_id` |
+| `credit_batches` | `isometric_removal_id`, `isometric_ghg_statement_id`, `production_run_id` (FK for chain of custody) |
+
+**Chain of Custody**: Credit batches link explicitly to production runs via `production_run_id` to ensure correct sample/lab data is synced to Isometric.
+
+See [isometric-adapter.md](./isometric-adapter.md) for sync usage.
 
 ## Conventions
 

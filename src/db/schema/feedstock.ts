@@ -11,8 +11,10 @@ import { suppliers, drivers } from './parties';
 export const feedstockTypes = pgTable('feedstock_types', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull().unique(), // e.g., "Mixed Wood Chips", "Hardwood"
-  // --- Isometric Sync ID ---
+
+  // --- Isometric Registry Sync ---
   isometricFeedstockTypeId: text('isometric_feedstock_type_id'),
+
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

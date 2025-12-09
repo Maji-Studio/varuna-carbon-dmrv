@@ -27,6 +27,10 @@ import type {
   Component,
   Datapoint,
   Source,
+  FeedstockType,
+  RemovalTemplate,
+  RemovalTemplateSummary,
+  RemovalTemplateComponentInput,
 } from './types';
 
 /** Cursor-based pagination params */
@@ -35,6 +39,7 @@ export interface PaginationParams {
   after?: string;
   last?: number;
   before?: string;
+  [key: string]: string | number | boolean | undefined;
 }
 
 const API_BASE_URLS = {
@@ -318,6 +323,54 @@ export class IsometricClient {
   }
 
   // ============================================
+  // CERTIFY API - Feedstock Types
+  // ============================================
+
+  /**
+   * List feedstock types (can only be created via Certify UI)
+   */
+  async listFeedstockTypes(
+    params?: PaginationParams & { supplier_reference_id?: string }
+  ): Promise<PaginatedResponse<FeedstockType>> {
+    return this.request<PaginatedResponse<FeedstockType>>('certify', '/feedstock_types', { params });
+  }
+
+  /**
+   * Get a specific feedstock type by ID
+   */
+  async getFeedstockType(id: string): Promise<FeedstockType> {
+    return this.request<FeedstockType>('certify', `/feedstock_types/${id}`);
+  }
+
+  // ============================================
+  // CERTIFY API - Removal Templates
+  // ============================================
+
+  /**
+   * List removal templates for a project
+   */
+  async listRemovalTemplates(
+    projectId: string,
+    params?: PaginationParams
+  ): Promise<PaginatedResponse<RemovalTemplateSummary>> {
+    return this.request<PaginatedResponse<RemovalTemplateSummary>>(
+      'certify',
+      `/projects/${projectId}/removal_templates`,
+      { params }
+    );
+  }
+
+  /**
+   * Get a specific removal template with full component/input details
+   */
+  async getRemovalTemplate(projectId: string, templateId: string): Promise<RemovalTemplate> {
+    return this.request<RemovalTemplate>(
+      'certify',
+      `/projects/${projectId}/removal_templates/${templateId}`
+    );
+  }
+
+  // ============================================
   // CERTIFY API - GHG Statements
   // ============================================
 
@@ -366,13 +419,16 @@ export class IsometricClient {
   }
 
   /**
-   * Create a removal
+   * Create a removal with optional component data
    */
   async createRemoval(data: {
     project_id: string;
     removal_template_id: string;
-    reporting_period_start: string;
-    reporting_period_end: string;
+    supplier_reference_id: string;
+    started_on: string;
+    completed_on: string;
+    feedstock_type_id?: string;
+    removal_template_components?: RemovalTemplateComponentInput[];
   }): Promise<Removal> {
     return this.request<Removal>('certify', '/removals', {
       method: 'POST',

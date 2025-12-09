@@ -108,3 +108,4 @@ export const emissionsCalculationMethod = pgEnum('emissions_calculation_method',
   'energy_usage', // Uses fuel consumption + emission factors
   'distance_based', // Uses distance + weight + emission factors
 ]);
+

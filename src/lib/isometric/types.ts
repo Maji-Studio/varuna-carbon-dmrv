@@ -320,9 +320,88 @@ export interface Facility {
 }
 
 // ============================================
-// Removal Template Component Types
+// Removal Template Types
 // ============================================
 
+/** Summary returned when listing templates */
+export interface RemovalTemplateSummary {
+  id: string;
+  display_name: string;
+  supplier_reference_id: string | null;
+  project_id: string;
+}
+
+/** Input definition within a template component */
+export interface RemovalTemplateInput {
+  input_key: string;
+  datapoint_id: string | null;
+  display_name: string;
+  type: 'fixed' | 'monitored';
+  quantity_kind: string;
+}
+
+/** Component within a template group */
+export interface RemovalTemplateComponent {
+  id: string;
+  display_name: string;
+  description: string | null;
+  blueprint_key: string;
+  removal_template_id: string;
+  removal_template_component_group_id: string;
+  inputs: RemovalTemplateInput[];
+}
+
+/** Group of components within a template */
+export interface RemovalTemplateGroup {
+  id: string;
+  key: string;
+  display_name: string;
+  description: string;
+  components: RemovalTemplateComponent[];
+}
+
+/** Full removal template with all groups and components */
+export interface RemovalTemplate {
+  id: string;
+  display_name: string;
+  supplier_reference_id: string | null;
+  project_id: string;
+  groups: RemovalTemplateGroup[];
+}
+
+// ============================================
+// Removal Template Component Input Types (for creating removals)
+// ============================================
+
+/** Scalar input value for a component */
+export interface ComponentScalarInput {
+  input_key: string;
+  value: {
+    magnitude: number;
+    unit: string;
+    standard_deviation?: number | null;
+  };
+}
+
+/** List input value for a component (multiple values) */
+export interface ComponentListInput {
+  input_key: string;
+  values: Array<{
+    magnitude: number;
+    unit: string;
+    standard_deviation?: number | null;
+  }>;
+}
+
+export type ComponentInputValue = ComponentScalarInput | ComponentListInput;
+
+/** Input for a single component when creating a removal */
+export interface RemovalTemplateComponentInput {
+  removal_template_component_id: string;
+  inputs: ComponentInputValue[];
+}
+
+// Legacy types for backward compatibility
 export interface CreateComponentScalarInput {
   __typename?: 'CreateComponentScalarInput';
   input_key: string;

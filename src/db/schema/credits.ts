@@ -12,6 +12,7 @@ import { relations } from 'drizzle-orm';
 import { creditBatchStatus, durabilityOption } from './common';
 import { facilities, reactors } from './facilities';
 import { applications } from './application';
+import { productionRuns } from './production';
 
 // ============================================
 // Credit Batches - Carbon credit batches for registry
@@ -24,6 +25,9 @@ export const creditBatches = pgTable('credit_batches', {
   facilityId: uuid('facility_id')
     .notNull()
     .references(() => facilities.id),
+  // Explicit link to production run for chain of custody
+  productionRunId: uuid('production_run_id')
+    .references(() => productionRuns.id),
   date: date('date'),
   status: creditBatchStatus('status').default('pending').notNull(),
 
@@ -67,9 +71,10 @@ export const creditBatches = pgTable('credit_batches', {
   companyVerificationRef: text('company_verification_ref'), // 3+ years active ag company proof
   mixingTimelineDays: integer('mixing_timeline_days'), // Days until mixed with soil
 
-  // --- Isometric Sync IDs ---
-  isometricRemovalId: text('isometric_removal_id'), // Removal entity for this batch
-  isometricGhgStatementId: text('isometric_ghg_statement_id'), // GHG Statement for verification
+  // --- Isometric Registry Sync ---
+  // Credit batch maps to 2 Isometric entities: Removal + GHGStatement
+  isometricRemovalId: text('isometric_removal_id'),
+  isometricGhgStatementId: text('isometric_ghg_statement_id'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -123,6 +128,10 @@ export const creditBatchesRelations = relations(
     facility: one(facilities, {
       fields: [creditBatches.facilityId],
       references: [facilities.id],
+    }),
+    productionRun: one(productionRuns, {
+      fields: [creditBatches.productionRunId],
+      references: [productionRuns.id],
     }),
     reactor: one(reactors, {
       fields: [creditBatches.reactorId],

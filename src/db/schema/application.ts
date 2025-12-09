@@ -7,10 +7,7 @@ import {
   date,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import {
-  applicationStatus,
-  applicationMethod,
-} from './common';
+import { applicationStatus, applicationMethod } from './common';
 import { facilities } from './facilities';
 import { deliveries } from './logistics';
 
@@ -56,10 +53,9 @@ export const applications = pgTable('applications', {
   truckMassOnArrivalKg: real('truck_mass_on_arrival_kg'),
   truckMassOnDepartureKg: real('truck_mass_on_departure_kg'),
 
-  // --- Isometric Sync IDs ---
-  // StorageLocation represents the field application site in Isometric
+  // --- Isometric Registry Sync ---
+  // Application maps to 2 Isometric entities: StorageLocation + BiocharApplication
   isometricStorageLocationId: text('isometric_storage_location_id'),
-  // BiocharApplication tracks each spreading event
   isometricBiocharApplicationId: text('isometric_biochar_application_id'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),

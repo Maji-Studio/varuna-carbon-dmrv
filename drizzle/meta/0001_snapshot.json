@@ -1,6 +1,6 @@
 {
-  "id": "c172262f-db33-44c0-a068-8b315f45b34f",
-  "prevId": "2ab6c5e6-9799-4b6f-bcdc-0eb62f961431",
+  "id": "48b4c02b-dea2-4040-9d20-d5e443db01c7",
+  "prevId": "de05c7a7-8be1-4122-b5dc-a36fede4f5df",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -90,6 +90,12 @@
         "gps_lng": {
           "name": "gps_lng",
           "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_facility_id": {
+          "name": "isometric_facility_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -493,6 +499,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "isometric_feedstock_type_id": {
+          "name": "isometric_feedstock_type_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -1114,6 +1126,12 @@
         "quenching_wet_weight_kg": {
           "name": "quenching_wet_weight_kg",
           "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_production_batch_id": {
+          "name": "isometric_production_batch_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -2526,27 +2544,33 @@
           "primaryKey": false,
           "notNull": false
         },
-        "soil_temperature_c": {
-          "name": "soil_temperature_c",
+        "co2e_stored_tonnes": {
+          "name": "co2e_stored_tonnes",
           "type": "real",
           "primaryKey": false,
           "notNull": false
         },
-        "soil_temperature_source": {
-          "name": "soil_temperature_source",
+        "truck_mass_on_arrival_kg": {
+          "name": "truck_mass_on_arrival_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "truck_mass_on_departure_kg": {
+          "name": "truck_mass_on_departure_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_storage_location_id": {
+          "name": "isometric_storage_location_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "f_durable_calculated": {
-          "name": "f_durable_calculated",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "co2e_stored_tonnes": {
-          "name": "co2e_stored_tonnes",
-          "type": "real",
+        "isometric_biochar_application_id": {
+          "name": "isometric_biochar_application_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -2787,6 +2811,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "production_run_id": {
+          "name": "production_run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "date": {
           "name": "date",
           "type": "date",
@@ -2868,6 +2898,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "soil_temperature_c": {
+          "name": "soil_temperature_c",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "soil_temperature_source": {
+          "name": "soil_temperature_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "f_durable_calculated": {
+          "name": "f_durable_calculated",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
         "site_management_notes": {
           "name": "site_management_notes",
           "type": "text",
@@ -2898,6 +2946,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "isometric_removal_id": {
+          "name": "isometric_removal_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_ghg_statement_id": {
+          "name": "isometric_ghg_statement_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -2921,6 +2981,19 @@
           "tableTo": "facilities",
           "columnsFrom": [
             "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "credit_batches_production_run_id_production_runs_id_fk": {
+          "name": "credit_batches_production_run_id_production_runs_id_fk",
+          "tableFrom": "credit_batches",
+          "tableTo": "production_runs",
+          "columnsFrom": [
+            "production_run_id"
           ],
           "columnsTo": [
             "id"
