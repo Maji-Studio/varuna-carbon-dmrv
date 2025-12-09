@@ -8,7 +8,7 @@ import {
   integer,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { productionRunStatus } from './common';
+import { productionRunStatus, syncStatus } from './common';
 import { facilities, reactors, storageLocations } from './facilities';
 import { operators } from './parties';
 
@@ -72,6 +72,11 @@ export const productionRuns = pgTable('production_runs', {
 
   // --- Isometric Sync ID ---
   isometricProductionBatchId: text('isometric_production_batch_id'),
+
+  // --- Registry Sync Tracking ---
+  syncStatus: syncStatus('sync_status').default('pending'),
+  lastSyncedAt: timestamp('last_synced_at'),
+  lastSyncError: text('last_sync_error'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

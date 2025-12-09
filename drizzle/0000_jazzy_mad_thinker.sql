@@ -12,6 +12,7 @@ CREATE TYPE "public"."order_status" AS ENUM('ordered', 'processed');--> statemen
 CREATE TYPE "public"."packaging_type" AS ENUM('loose', 'bagged');--> statement-breakpoint
 CREATE TYPE "public"."production_run_status" AS ENUM('running', 'complete');--> statement-breakpoint
 CREATE TYPE "public"."storage_location_type" AS ENUM('feedstock_bin', 'feedstock_pile', 'biochar_pile', 'product_pile');--> statement-breakpoint
+CREATE TYPE "public"."sync_status" AS ENUM('pending', 'syncing', 'synced', 'error');--> statement-breakpoint
 CREATE TYPE "public"."transport_entity_type" AS ENUM('feedstock', 'biochar', 'sample', 'delivery');--> statement-breakpoint
 CREATE TYPE "public"."transport_method" AS ENUM('road', 'rail', 'ship', 'pipeline', 'aircraft');--> statement-breakpoint
 CREATE TABLE "users" (
@@ -29,6 +30,10 @@ CREATE TABLE "facilities" (
 	"location" text,
 	"gps_lat" real,
 	"gps_lng" real,
+	"isometric_facility_id" text,
+	"sync_status" "sync_status" DEFAULT 'pending',
+	"last_synced_at" timestamp,
+	"last_sync_error" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -93,6 +98,10 @@ CREATE TABLE "suppliers" (
 CREATE TABLE "feedstock_types" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
+	"isometric_feedstock_type_id" text,
+	"sync_status" "sync_status" DEFAULT 'pending',
+	"last_synced_at" timestamp,
+	"last_sync_error" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "feedstock_types_name_unique" UNIQUE("name")
@@ -177,6 +186,10 @@ CREATE TABLE "production_runs" (
 	"total_emissions_kg" real,
 	"quenching_dry_weight_kg" real,
 	"quenching_wet_weight_kg" real,
+	"isometric_production_batch_id" text,
+	"sync_status" "sync_status" DEFAULT 'pending',
+	"last_synced_at" timestamp,
+	"last_sync_error" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "production_runs_code_unique" UNIQUE("code")
@@ -364,11 +377,14 @@ CREATE TABLE "applications" (
 	"application_method" "application_method",
 	"field_identifier" text,
 	"gis_boundary_reference" text,
-	"durability_option" "durability_option",
-	"soil_temperature_c" real,
-	"soil_temperature_source" text,
-	"f_durable_calculated" real,
 	"co2e_stored_tonnes" real,
+	"truck_mass_on_arrival_kg" real,
+	"truck_mass_on_departure_kg" real,
+	"isometric_storage_location_id" text,
+	"isometric_biochar_application_id" text,
+	"sync_status" "sync_status" DEFAULT 'pending',
+	"last_synced_at" timestamp,
+	"last_sync_error" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "applications_code_unique" UNIQUE("code")
@@ -410,6 +426,20 @@ CREATE TABLE "credit_batches" (
 	"credits_tco2e" real,
 	"value_tzs" real,
 	"buffer_pool_percent" real,
+	"durability_option" "durability_option",
+	"soil_temperature_c" real,
+	"soil_temperature_source" text,
+	"f_durable_calculated" real,
+	"site_management_notes" text,
+	"affidavit_reference" text,
+	"intended_use_confirmation" text,
+	"company_verification_ref" text,
+	"mixing_timeline_days" integer,
+	"isometric_removal_id" text,
+	"isometric_ghg_statement_id" text,
+	"sync_status" "sync_status" DEFAULT 'pending',
+	"last_synced_at" timestamp,
+	"last_sync_error" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "credit_batches_code_unique" UNIQUE("code")

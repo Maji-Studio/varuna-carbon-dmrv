@@ -327,6 +327,7 @@ CO2e_stored = C_biochar × m_biochar × F_durable × 44.01/12.01
 | `delivery_status` | processing, delivered | deliveries |
 | `application_status` | delivered, applied | applications |
 | `credit_batch_status` | pending, verified, issued | credit_batches |
+| `sync_status` | pending, syncing, synced, error | facilities, feedstock_types, production_runs, applications, credit_batches |
 
 ### Type Enums
 
@@ -346,6 +347,32 @@ CO2e_stored = C_biochar × m_biochar × F_durable × 44.01/12.01
 | `transport_entity_type` | feedstock, biochar, sample, delivery | transport_legs | Transportation Module |
 | `transport_method` | road, rail, ship, pipeline, aircraft | transport_legs | Transportation Module |
 | `emissions_calculation_method` | energy_usage, distance_based | transport_legs | Section 3.2, 3.3 |
+
+## Registry Sync Tracking
+
+Tables that sync to external registries (Isometric, etc.) include tracking fields:
+
+### Sync Status Fields (Common)
+
+```typescript
+// Added to: facilities, feedstockTypes, productionRuns, applications, creditBatches
+syncStatus: syncStatus('sync_status').default('pending')  // pending | syncing | synced | error
+lastSyncedAt: timestamp('last_synced_at')                 // Last successful sync time
+lastSyncError: text('last_sync_error')                    // Error message if sync failed
+```
+
+### Isometric Registry IDs (Entity-Specific)
+
+| Table | Isometric ID Field | Isometric Entity |
+|-------|-------------------|------------------|
+| `facilities` | `isometric_facility_id` | Facility |
+| `feedstock_types` | `isometric_feedstock_type_id` | FeedstockType |
+| `production_runs` | `isometric_production_batch_id` | ProductionBatch |
+| `applications` | `isometric_storage_location_id` | StorageLocation |
+| `applications` | `isometric_biochar_application_id` | BiocharApplication |
+| `credit_batches` | `isometric_ghg_statement_id` | GHGStatement |
+
+See [isometric-adapter.md](./isometric-adapter.md) for adapter usage.
 
 ## Conventions
 

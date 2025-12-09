@@ -168,6 +168,21 @@ src/lib/isometric/
 ├── index.ts      # Public exports
 ├── client.ts     # IsometricClient class with all API methods
 └── types.ts      # TypeScript type definitions
+
+src/lib/adapters/
+├── index.ts                    # Public exports
+├── types.ts                    # Registry-agnostic interfaces
+└── isometric/
+    ├── index.ts                # Isometric adapter exports
+    ├── adapter.ts              # Main IsometricAdapter class
+    ├── sync.ts                 # Batch sync & retry orchestration
+    └── transformers/           # Data transformation functions
+        ├── index.ts
+        ├── facility.ts         # facility → Isometric Facility
+        ├── feedstock.ts        # feedstockType → Isometric FeedstockType
+        ├── production.ts       # productionRun → Isometric ProductionBatch
+        ├── application.ts      # application → StorageLocation + BiocharApplication
+        └── credit-batch.ts     # creditBatch → Removal + GHGStatement
 ```
 
 ### Key Concepts

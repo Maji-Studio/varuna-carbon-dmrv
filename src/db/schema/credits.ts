@@ -9,7 +9,7 @@ import {
   primaryKey,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { creditBatchStatus, durabilityOption } from './common';
+import { creditBatchStatus, durabilityOption, syncStatus } from './common';
 import { facilities, reactors } from './facilities';
 import { applications } from './application';
 
@@ -70,6 +70,11 @@ export const creditBatches = pgTable('credit_batches', {
   // --- Isometric Sync IDs ---
   isometricRemovalId: text('isometric_removal_id'), // Removal entity for this batch
   isometricGhgStatementId: text('isometric_ghg_statement_id'), // GHG Statement for verification
+
+  // --- Registry Sync Tracking ---
+  syncStatus: syncStatus('sync_status').default('pending'),
+  lastSyncedAt: timestamp('last_synced_at'),
+  lastSyncError: text('last_sync_error'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1764859192059,
-      "tag": "0000_fresh_shotgun",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1764942151572,
-      "tag": "0001_handy_lady_deathstrike",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1764942402915,
-      "tag": "0002_dapper_molecule_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1764955446779,
-      "tag": "0003_lean_otto_octavius",
+      "when": 1765272928556,
+      "tag": "0000_jazzy_mad_thinker",
       "breakpoints": true
     }
   ]

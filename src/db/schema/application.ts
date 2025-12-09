@@ -10,6 +10,7 @@ import { relations } from 'drizzle-orm';
 import {
   applicationStatus,
   applicationMethod,
+  syncStatus,
 } from './common';
 import { facilities } from './facilities';
 import { deliveries } from './logistics';
@@ -61,6 +62,11 @@ export const applications = pgTable('applications', {
   isometricStorageLocationId: text('isometric_storage_location_id'),
   // BiocharApplication tracks each spreading event
   isometricBiocharApplicationId: text('isometric_biochar_application_id'),
+
+  // --- Registry Sync Tracking ---
+  syncStatus: syncStatus('sync_status').default('pending'),
+  lastSyncedAt: timestamp('last_synced_at'),
+  lastSyncError: text('last_sync_error'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

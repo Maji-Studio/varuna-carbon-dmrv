@@ -1,5 +1,5 @@
 {
-  "id": "2ab6c5e6-9799-4b6f-bcdc-0eb62f961431",
+  "id": "4c4ffa6c-f76d-42e5-97fb-7049a1f7f4f0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -90,6 +90,32 @@
         "gps_lng": {
           "name": "gps_lng",
           "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_facility_id": {
+          "name": "isometric_facility_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sync_status": {
+          "name": "sync_status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sync_error": {
+          "name": "last_sync_error",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -493,6 +519,32 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "isometric_feedstock_type_id": {
+          "name": "isometric_feedstock_type_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sync_status": {
+          "name": "sync_status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sync_error": {
+          "name": "last_sync_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -1114,6 +1166,32 @@
         "quenching_wet_weight_kg": {
           "name": "quenching_wet_weight_kg",
           "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_production_batch_id": {
+          "name": "isometric_production_batch_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sync_status": {
+          "name": "sync_status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sync_error": {
+          "name": "last_sync_error",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -2526,34 +2604,53 @@
           "primaryKey": false,
           "notNull": false
         },
-        "durability_option": {
-          "name": "durability_option",
-          "type": "durability_option",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "soil_temperature_c": {
-          "name": "soil_temperature_c",
+        "co2e_stored_tonnes": {
+          "name": "co2e_stored_tonnes",
           "type": "real",
           "primaryKey": false,
           "notNull": false
         },
-        "soil_temperature_source": {
-          "name": "soil_temperature_source",
+        "truck_mass_on_arrival_kg": {
+          "name": "truck_mass_on_arrival_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "truck_mass_on_departure_kg": {
+          "name": "truck_mass_on_departure_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_storage_location_id": {
+          "name": "isometric_storage_location_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "f_durable_calculated": {
-          "name": "f_durable_calculated",
-          "type": "real",
+        "isometric_biochar_application_id": {
+          "name": "isometric_biochar_application_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "co2e_stored_tonnes": {
-          "name": "co2e_stored_tonnes",
-          "type": "real",
+        "sync_status": {
+          "name": "sync_status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sync_error": {
+          "name": "last_sync_error",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -2865,6 +2962,93 @@
         "buffer_pool_percent": {
           "name": "buffer_pool_percent",
           "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "durability_option": {
+          "name": "durability_option",
+          "type": "durability_option",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "soil_temperature_c": {
+          "name": "soil_temperature_c",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "soil_temperature_source": {
+          "name": "soil_temperature_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "f_durable_calculated": {
+          "name": "f_durable_calculated",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_management_notes": {
+          "name": "site_management_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "affidavit_reference": {
+          "name": "affidavit_reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "intended_use_confirmation": {
+          "name": "intended_use_confirmation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "company_verification_ref": {
+          "name": "company_verification_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mixing_timeline_days": {
+          "name": "mixing_timeline_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_removal_id": {
+          "name": "isometric_removal_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isometric_ghg_statement_id": {
+          "name": "isometric_ghg_statement_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sync_status": {
+          "name": "sync_status",
+          "type": "sync_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'pending'"
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sync_error": {
+          "name": "last_sync_error",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -3192,6 +3376,16 @@
         "feedstock_pile",
         "biochar_pile",
         "product_pile"
+      ]
+    },
+    "public.sync_status": {
+      "name": "sync_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "syncing",
+        "synced",
+        "error"
       ]
     },
     "public.transport_entity_type": {
