@@ -106,7 +106,7 @@ src/db/
 | Table | Description |
 |-------|-------------|
 | `documentation` | Polymorphic attachments (photos, videos, PDFs) |
-| `credit_batch_applications` | Junction table (M:M) |
+| `credit_batch_applications` | Junction table (M:M) - links credit batches to applications |
 | `users` | User accounts |
 
 ## Isometric Protocol Compliance Fields
@@ -357,9 +357,14 @@ Isometric IDs are stored directly on entity tables for simplicity:
 | `feedstock_types` | `isometric_feedstock_type_id` |
 | `production_runs` | `isometric_production_batch_id` |
 | `applications` | `isometric_storage_location_id`, `isometric_biochar_application_id` |
-| `credit_batches` | `isometric_removal_id`, `isometric_ghg_statement_id`, `production_run_id` (FK for chain of custody) |
+| `credit_batches` | `isometric_removal_id`, `isometric_ghg_statement_id` |
 
-**Chain of Custody**: Credit batches link explicitly to production runs via `production_run_id` to ensure correct sample/lab data is synced to Isometric.
+**Chain of Custody**: Production runs are traced via FK chain traversal:
+```
+CreditBatch → Application → Delivery → BiocharProduct → ProductionRun → Samples
+```
+
+This eliminates the need for a separate junction table between credit batches and production runs. The complete FK chain must be present (Application must have Delivery, Delivery must have BiocharProduct, BiocharProduct must have linkedProductionRun).
 
 See [isometric-adapter.md](./isometric-adapter.md) for sync usage.
 

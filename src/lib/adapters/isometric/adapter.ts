@@ -323,12 +323,28 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
       return { success: false, error: "ISOMETRIC_PROJECT_ID and ISOMETRIC_REMOVAL_TEMPLATE_ID must be set" };
     }
 
-    // Step 2: Load related data for component inputs
-    // Get applications linked to this credit batch
+    // Step 2: Load related data via FK chain traversal
+    // Chain: CreditBatch → Application → Delivery → BiocharProduct → ProductionRun → Samples
     const batchApplications = await db.query.creditBatchApplications.findMany({
       where: eq(creditBatchApplications.creditBatchId, creditBatchId),
       with: {
-        application: true,
+        application: {
+          with: {
+            delivery: {
+              with: {
+                biocharProduct: {
+                  with: {
+                    linkedProductionRun: {
+                      with: {
+                        samples: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -336,23 +352,43 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
       return { success: false, error: "Credit batch has no linked applications" };
     }
 
-    const application = batchApplications[0].application;
-
-    // Get production run with samples using explicit FK (chain of custody)
-    if (!creditBatch.productionRunId) {
-      return { success: false, error: "Credit batch has no linked production run (productionRunId is required)" };
+    // Validate complete FK chain for each application
+    const validApplications = [];
+    for (const ba of batchApplications) {
+      const app = ba.application;
+      if (!app.delivery) {
+        return { success: false, error: `Application ${app.code} is missing a delivery` };
+      }
+      if (!app.delivery.biocharProduct) {
+        return { success: false, error: `Delivery ${app.delivery.code} is missing a biochar product` };
+      }
+      if (!app.delivery.biocharProduct.linkedProductionRun) {
+        return { success: false, error: `Biochar product ${app.delivery.biocharProduct.code} is missing a linked production run` };
+      }
+      validApplications.push(ba);
     }
 
-    const productionRun = await db.query.productionRuns.findFirst({
-      where: eq(productionRuns.id, creditBatch.productionRunId),
-      with: {
-        samples: true,
-      },
-    });
+    const application = validApplications[0].application;
 
-    if (!productionRun) {
-      return { success: false, error: "Linked production run not found" };
+    // Extract unique production runs from FK chain
+    // Type: non-null production run with samples (validated above)
+    type ProductionRunWithSamples = NonNullable<
+      NonNullable<
+        NonNullable<typeof validApplications[0]["application"]["delivery"]>["biocharProduct"]
+      >["linkedProductionRun"]
+    >;
+    const productionRunsMap = new Map<string, ProductionRunWithSamples>();
+    for (const ba of validApplications) {
+      const pr = ba.application.delivery!.biocharProduct!.linkedProductionRun!;
+      productionRunsMap.set(pr.id, pr);
     }
+
+    if (productionRunsMap.size === 0) {
+      return { success: false, error: "Credit batch has no linked production runs" };
+    }
+
+    // For now, use first production run (can aggregate data from multiple runs later)
+    const productionRun = [...productionRunsMap.values()][0];
 
     if (!productionRun.samples || productionRun.samples.length === 0) {
       return { success: false, error: "Production run has no samples" };
