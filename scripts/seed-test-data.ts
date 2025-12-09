@@ -242,6 +242,7 @@ async function seedTestData() {
       .values({
         code: 'CB-TEST-001',
         facilityId: facility.id,
+        productionRunId: productionRun.id, // Explicit link for chain of custody
         date: '2025-01-31',
         status: 'pending',
 

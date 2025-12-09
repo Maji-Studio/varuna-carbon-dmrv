@@ -9,8 +9,8 @@
  *   const result = await syncFacility(facilityId);
  */
 
-import { eq } from 'drizzle-orm';
-import { db } from '@/db';
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
 import {
   facilities,
   feedstockTypes,
@@ -19,10 +19,10 @@ import {
   applications,
   creditBatches,
   creditBatchApplications,
-} from '@/db/schema';
-import { isometric } from '@/lib/isometric';
-import * as transformers from './transformers';
-import { serverEnv } from '@/config/env.server';
+} from "@/db/schema";
+import { isometric } from "@/lib/isometric";
+import * as transformers from "./transformers";
+import { serverEnv } from "@/config/env.server";
 
 // ============================================
 // Types
@@ -49,7 +49,7 @@ export async function syncFacility(facilityId: string): Promise<SyncResult> {
     });
 
     if (!facility) {
-      return { success: false, error: 'Facility not found' };
+      return { success: false, error: "Facility not found" };
     }
 
     // Already synced?
@@ -60,7 +60,7 @@ export async function syncFacility(facilityId: string): Promise<SyncResult> {
     // Validate
     const validation = transformers.validateFacilityForSync(facility);
     if (!validation.valid) {
-      return { success: false, error: validation.errors.join('; ') };
+      return { success: false, error: validation.errors.join("; ") };
     }
 
     // Transform and send
@@ -68,13 +68,11 @@ export async function syncFacility(facilityId: string): Promise<SyncResult> {
 
     // TODO: Use actual API call when available
     // const result = await isometric.createFacility(payload);
-    console.log('Would create facility in Isometric:', payload);
+    console.log("Would create facility in Isometric:", payload);
     const isometricId = `fac_${Date.now()}`;
 
     // Store Isometric ID
-    await db.update(facilities)
-      .set({ isometricFacilityId: isometricId })
-      .where(eq(facilities.id, facilityId));
+    await db.update(facilities).set({ isometricFacilityId: isometricId }).where(eq(facilities.id, facilityId));
 
     return { success: true, isometricId };
   } catch (error) {
@@ -117,12 +115,11 @@ export async function pullFeedstockTypes(): Promise<{
 
     // Match by name (case-insensitive)
     for (const localType of localTypes) {
-      const match = isometricTypes.find(
-        (iso) => iso.name.toLowerCase() === localType.name.toLowerCase()
-      );
+      const match = isometricTypes.find((iso) => iso.name.toLowerCase() === localType.name.toLowerCase());
 
       if (match) {
-        await db.update(feedstockTypes)
+        await db
+          .update(feedstockTypes)
           .set({ isometricFeedstockTypeId: match.id })
           .where(eq(feedstockTypes.id, localType.id));
         matched++;
@@ -152,7 +149,8 @@ export async function pullFeedstockTypes(): Promise<{
 export async function syncFeedstockType(feedstockTypeId: string): Promise<SyncResult> {
   return {
     success: false,
-    error: 'Feedstock types cannot be created via API. Use pullFeedstockTypes() to match existing types from Isometric.',
+    error:
+      "Feedstock types cannot be created via API. Use pullFeedstockTypes() to match existing types from Isometric.",
   };
 }
 
@@ -167,7 +165,7 @@ export async function syncProductionRun(productionRunId: string): Promise<SyncRe
     });
 
     if (!productionRun) {
-      return { success: false, error: 'Production run not found' };
+      return { success: false, error: "Production run not found" };
     }
 
     if (productionRun.isometricProductionBatchId) {
@@ -176,7 +174,7 @@ export async function syncProductionRun(productionRunId: string): Promise<SyncRe
 
     const validation = transformers.validateProductionRunForSync(productionRun);
     if (!validation.valid) {
-      return { success: false, error: validation.errors.join('; ') };
+      return { success: false, error: validation.errors.join("; ") };
     }
 
     // Ensure facility is synced first
@@ -203,10 +201,11 @@ export async function syncProductionRun(productionRunId: string): Promise<SyncRe
     );
 
     // TODO: Use actual API call when available
-    console.log('Would create production batch in Isometric:', payload);
+    console.log("Would create production batch in Isometric:", payload);
     const isometricId = `pbd_${Date.now()}`;
 
-    await db.update(productionRuns)
+    await db
+      .update(productionRuns)
       .set({ isometricProductionBatchId: isometricId })
       .where(eq(productionRuns.id, productionRunId));
 
@@ -228,7 +227,7 @@ export async function syncApplication(applicationId: string): Promise<SyncResult
     });
 
     if (!application) {
-      return { success: false, error: 'Application not found' };
+      return { success: false, error: "Application not found" };
     }
 
     // If BiocharApplication is synced, we're done (it's the final step)
@@ -238,27 +237,28 @@ export async function syncApplication(applicationId: string): Promise<SyncResult
 
     const validation = transformers.validateApplicationForSync(application);
     if (!validation.valid) {
-      return { success: false, error: validation.errors.join('; ') };
+      return { success: false, error: validation.errors.join("; ") };
     }
 
-    const projectId = process.env.ISOMETRIC_PROJECT_ID || '';
+    const projectId = process.env.ISOMETRIC_PROJECT_ID || "";
 
     // Step 1: Create StorageLocation if needed
     let storageLocationId = application.isometricStorageLocationId;
     if (!storageLocationId) {
       const storagePayload = transformers.transformApplicationToStorageLocation(application, projectId);
       // TODO: Use actual API call when available
-      console.log('Would create storage location in Isometric:', storagePayload);
+      console.log("Would create storage location in Isometric:", storagePayload);
       storageLocationId = `sloc_${Date.now()}`;
 
-      await db.update(applications)
+      await db
+        .update(applications)
         .set({ isometricStorageLocationId: storageLocationId })
         .where(eq(applications.id, applicationId));
     }
 
     // Step 2: Create BiocharApplication
     // TODO: Get production batch ID from chain of custody
-    const productionBatchId = 'pbd_placeholder';
+    const productionBatchId = "pbd_placeholder";
 
     const biocharPayload = transformers.transformApplicationToBiocharApplication(
       application,
@@ -268,10 +268,11 @@ export async function syncApplication(applicationId: string): Promise<SyncResult
     );
 
     // TODO: Use actual API call when available
-    console.log('Would create biochar application in Isometric:', biocharPayload);
+    console.log("Would create biochar application in Isometric:", biocharPayload);
     const biocharApplicationId = `bapp_${Date.now()}`;
 
-    await db.update(applications)
+    await db
+      .update(applications)
       .set({ isometricBiocharApplicationId: biocharApplicationId })
       .where(eq(applications.id, applicationId));
 
@@ -302,7 +303,7 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
     });
 
     if (!creditBatch) {
-      return { success: false, error: 'Credit batch not found' };
+      return { success: false, error: "Credit batch not found" };
     }
 
     // If GHG Statement is synced, we're done
@@ -312,14 +313,14 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
 
     const validation = transformers.validateCreditBatchForSync(creditBatch);
     if (!validation.valid) {
-      return { success: false, error: validation.errors.join('; ') };
+      return { success: false, error: validation.errors.join("; ") };
     }
 
     const projectId = serverEnv.ISOMETRIC_PROJECT_ID;
     const removalTemplateId = serverEnv.ISOMETRIC_REMOVAL_TEMPLATE_ID;
 
     if (!projectId || !removalTemplateId) {
-      return { success: false, error: 'ISOMETRIC_PROJECT_ID and ISOMETRIC_REMOVAL_TEMPLATE_ID must be set' };
+      return { success: false, error: "ISOMETRIC_PROJECT_ID and ISOMETRIC_REMOVAL_TEMPLATE_ID must be set" };
     }
 
     // Step 2: Load related data for component inputs
@@ -332,27 +333,29 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
     });
 
     if (batchApplications.length === 0) {
-      return { success: false, error: 'Credit batch has no linked applications' };
+      return { success: false, error: "Credit batch has no linked applications" };
     }
 
     const application = batchApplications[0].application;
 
-    // Get production run with samples
-    // For now, get the most recent production run from the same facility
+    // Get production run with samples using explicit FK (chain of custody)
+    if (!creditBatch.productionRunId) {
+      return { success: false, error: "Credit batch has no linked production run (productionRunId is required)" };
+    }
+
     const productionRun = await db.query.productionRuns.findFirst({
-      where: eq(productionRuns.facilityId, creditBatch.facilityId),
-      orderBy: (pr, { desc }) => [desc(pr.createdAt)],
+      where: eq(productionRuns.id, creditBatch.productionRunId),
       with: {
         samples: true,
       },
     });
 
     if (!productionRun) {
-      return { success: false, error: 'No production run found for facility' };
+      return { success: false, error: "Linked production run not found" };
     }
 
     if (!productionRun.samples || productionRun.samples.length === 0) {
-      return { success: false, error: 'Production run has no samples' };
+      return { success: false, error: "Production run has no samples" };
     }
 
     const sample = productionRun.samples[0];
@@ -366,12 +369,12 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
 
     const dataValidation = transformers.validateLocalDataForRemoval(localData);
     if (!dataValidation.valid) {
-      return { success: false, error: `Data validation failed: ${dataValidation.errors.join('; ')}` };
+      return { success: false, error: `Data validation failed: ${dataValidation.errors.join("; ")}` };
     }
 
     // Log warnings but continue
     if (dataValidation.warnings.length > 0) {
-      console.warn('Data warnings:', dataValidation.warnings);
+      console.warn("Data warnings:", dataValidation.warnings);
     }
 
     // Step 3: Fetch removal template to understand component structure
@@ -380,8 +383,8 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
     // Step 4: Map local data to template component inputs
     const removalTemplateComponents = transformers.mapRemovalTemplateComponents(template, localData);
 
-    console.log('Removal data summary:', transformers.getRemovalDataSummary(localData));
-    console.log('Mapped components:', JSON.stringify(removalTemplateComponents, null, 2));
+    console.log("Removal data summary:", transformers.getRemovalDataSummary(localData));
+    console.log("Mapped components:", JSON.stringify(removalTemplateComponents, null, 2));
 
     // Step 5: Create Removal with actual data
     let removalId = creditBatch.isometricRemovalId;
@@ -390,16 +393,14 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
         project_id: projectId,
         removal_template_id: removalTemplateId,
         supplier_reference_id: creditBatch.code,
-        started_on: creditBatch.startDate?.toISOString().split('T')[0] || '',
-        completed_on: creditBatch.endDate?.toISOString().split('T')[0] || '',
+        started_on: creditBatch.startDate?.toISOString().split("T")[0] || "",
+        completed_on: creditBatch.endDate?.toISOString().split("T")[0] || "",
         removal_template_components: removalTemplateComponents,
       });
 
       removalId = removal.id;
 
-      await db.update(creditBatches)
-        .set({ isometricRemovalId: removalId })
-        .where(eq(creditBatches.id, creditBatchId));
+      await db.update(creditBatches).set({ isometricRemovalId: removalId }).where(eq(creditBatches.id, creditBatchId));
 
       console.log(`Created Isometric Removal: ${removalId}`);
     }
@@ -408,11 +409,12 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
     const ghgStatement = await isometric.createGHGStatement({
       project_id: projectId,
       removal_ids: [removalId],
-      reporting_period_start: creditBatch.startDate?.toISOString().split('T')[0] || '',
-      reporting_period_end: creditBatch.endDate?.toISOString().split('T')[0] || '',
+      reporting_period_start: creditBatch.startDate?.toISOString().split("T")[0] || "",
+      reporting_period_end: creditBatch.endDate?.toISOString().split("T")[0] || "",
     });
 
-    await db.update(creditBatches)
+    await db
+      .update(creditBatches)
       .set({ isometricGhgStatementId: ghgStatement.id })
       .where(eq(creditBatches.id, creditBatchId));
 
@@ -420,7 +422,7 @@ export async function syncCreditBatch(creditBatchId: string): Promise<SyncResult
 
     return { success: true, isometricId: ghgStatement.id };
   } catch (error) {
-    console.error('syncCreditBatch error:', error);
+    console.error("syncCreditBatch error:", error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
@@ -439,15 +441,13 @@ export async function confirmGHGStatement(creditBatchId: string): Promise<SyncRe
     });
 
     if (!creditBatch?.isometricGhgStatementId) {
-      return { success: false, error: 'Credit batch not synced to Isometric' };
+      return { success: false, error: "Credit batch not synced to Isometric" };
     }
 
     const statement = await isometric.getGHGStatement(creditBatch.isometricGhgStatementId);
     const localStatus = transformers.mapGHGStatementStatusToLocal(statement.status);
 
-    await db.update(creditBatches)
-      .set({ status: localStatus })
-      .where(eq(creditBatches.id, creditBatchId));
+    await db.update(creditBatches).set({ status: localStatus }).where(eq(creditBatches.id, creditBatchId));
 
     return {
       success: true,

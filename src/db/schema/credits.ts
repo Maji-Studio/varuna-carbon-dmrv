@@ -12,6 +12,7 @@ import { relations } from 'drizzle-orm';
 import { creditBatchStatus, durabilityOption } from './common';
 import { facilities, reactors } from './facilities';
 import { applications } from './application';
+import { productionRuns } from './production';
 
 // ============================================
 // Credit Batches - Carbon credit batches for registry
@@ -24,6 +25,9 @@ export const creditBatches = pgTable('credit_batches', {
   facilityId: uuid('facility_id')
     .notNull()
     .references(() => facilities.id),
+  // Explicit link to production run for chain of custody
+  productionRunId: uuid('production_run_id')
+    .references(() => productionRuns.id),
   date: date('date'),
   status: creditBatchStatus('status').default('pending').notNull(),
 
@@ -124,6 +128,10 @@ export const creditBatchesRelations = relations(
     facility: one(facilities, {
       fields: [creditBatches.facilityId],
       references: [facilities.id],
+    }),
+    productionRun: one(productionRuns, {
+      fields: [creditBatches.productionRunId],
+      references: [productionRuns.id],
     }),
     reactor: one(reactors, {
       fields: [creditBatches.reactorId],

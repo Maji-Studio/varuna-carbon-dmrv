@@ -29,8 +29,7 @@ src/db/
     ├── logistics.ts      # Orders, deliveries, transport legs
     ├── application.ts    # Field applications, soil temperature
     ├── credits.ts        # Credit batches, lab analyses
-    ├── documentation.ts  # Polymorphic attachments
-    └── registry.ts       # Registry sync tracking (polymorphic)
+    └── documentation.ts  # Polymorphic attachments
 ```
 
 ## Entity Relationship Diagram
@@ -53,7 +52,7 @@ src/db/
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Tables (27 total)
+## Tables (25 total)
 
 ### Core Infrastructure
 
@@ -108,7 +107,6 @@ src/db/
 |-------|-------------|
 | `documentation` | Polymorphic attachments (photos, videos, PDFs) |
 | `credit_batch_applications` | Junction table (M:M) |
-| `registry_identities` | Polymorphic registry sync tracking (multi-registry) |
 | `users` | User accounts |
 
 ## Isometric Protocol Compliance Fields
@@ -359,7 +357,9 @@ Isometric IDs are stored directly on entity tables for simplicity:
 | `feedstock_types` | `isometric_feedstock_type_id` |
 | `production_runs` | `isometric_production_batch_id` |
 | `applications` | `isometric_storage_location_id`, `isometric_biochar_application_id` |
-| `credit_batches` | `isometric_removal_id`, `isometric_ghg_statement_id` |
+| `credit_batches` | `isometric_removal_id`, `isometric_ghg_statement_id`, `production_run_id` (FK for chain of custody) |
+
+**Chain of Custody**: Credit batches link explicitly to production runs via `production_run_id` to ensure correct sample/lab data is synced to Isometric.
 
 See [isometric-adapter.md](./isometric-adapter.md) for sync usage.
 
