@@ -2,7 +2,9 @@
  * Seed Test Data for Isometric Integration
  *
  * Creates a complete chain of custody for one end-to-end verification:
- * Facility → FeedstockType → ProductionRun → Sample → Application → CreditBatch
+ * Facility → FeedstockType → ProductionRun → Sample → BiocharProduct → Delivery → Application → CreditBatch
+ *
+ * Production runs are traced via FK chain: CreditBatch → Application → Delivery → BiocharProduct → ProductionRun
  *
  * Run with: pnpm tsx scripts/seed-test-data.ts
  */
@@ -35,6 +37,8 @@ async function seedTestData() {
     await db.delete(schema.creditBatchApplications);
     await db.delete(schema.creditBatches).where(like(schema.creditBatches.code, 'CB-TEST-%'));
     await db.delete(schema.applications).where(like(schema.applications.code, 'AP-TEST-%'));
+    await db.delete(schema.deliveries).where(like(schema.deliveries.code, 'DL-TEST-%'));
+    await db.delete(schema.biocharProducts).where(like(schema.biocharProducts.code, 'BP-TEST-%'));
     await db.delete(schema.samples);
     await db.delete(schema.productionRuns).where(like(schema.productionRuns.code, 'PR-TEST-%'));
     // Note: Don't delete feedstock_types since they may be referenced by real feedstocks
@@ -194,7 +198,50 @@ async function seedTestData() {
     console.log(`    O:Corg ratio: ${sample.oCorgMolarRatio} (must be <0.2)`);
 
     // ============================================
-    // 5. Application (Field Spreading)
+    // 5. Biochar Product (links to Production Run)
+    // ============================================
+    console.log('Creating biochar product...');
+    const [biocharProduct] = await db
+      .insert(schema.biocharProducts)
+      .values({
+        code: 'BP-TEST-001',
+        facilityId: facility.id,
+        productionDate: new Date('2025-01-01T17:00:00Z'),
+        status: 'ready',
+        linkedProductionRunId: productionRun.id, // Links to production run
+        biocharAmountKg: 300,
+        totalWeightKg: 300,
+      })
+      .returning();
+    console.log(`  ✓ Biochar Product: ${biocharProduct.code} (${biocharProduct.id})`);
+    console.log(`    Linked to: ${productionRun.code}`);
+
+    // ============================================
+    // 6. Delivery (links to Biochar Product)
+    // ============================================
+    console.log('Creating delivery...');
+    const [delivery] = await db
+      .insert(schema.deliveries)
+      .values({
+        code: 'DL-TEST-001',
+        facilityId: facility.id,
+        deliveryDate: new Date('2025-01-14T08:00:00Z'),
+        status: 'delivered',
+        biocharProductId: biocharProduct.id, // Links to biochar product
+        quantityTons: 0.3,
+        biocharTons: 0.3,
+        distanceKm: 25,
+        vehicleType: 'Truck',
+        fuelType: 'Diesel',
+        fuelConsumedLiters: 10,
+        emissionsTco2e: 0.027, // ~2.68 kg CO2/liter * 10 liters
+      })
+      .returning();
+    console.log(`  ✓ Delivery: ${delivery.code} (${delivery.id})`);
+    console.log(`    Linked to: ${biocharProduct.code}`);
+
+    // ============================================
+    // 7. Application (links to Delivery)
     // ============================================
     console.log('Creating application...');
     const [application] = await db
@@ -204,6 +251,7 @@ async function seedTestData() {
         facilityId: facility.id,
         applicationDate: new Date('2025-01-15T10:00:00Z'),
         status: 'applied',
+        deliveryId: delivery.id, // Links to delivery (completes FK chain)
 
         // Biochar applied
         biocharAppliedTons: 0.3, // 300kg from production run
@@ -232,9 +280,10 @@ async function seedTestData() {
     console.log(`  ✓ Application: ${application.code} (${application.id})`);
     console.log(`    Location: ${application.gpsLat}, ${application.gpsLng}`);
     console.log(`    Biochar: ${application.biocharAppliedTons} tonnes`);
+    console.log(`    Linked to: ${delivery.code}`);
 
     // ============================================
-    // 6. Credit Batch (Verification Submission)
+    // 8. Credit Batch (Verification Submission)
     // ============================================
     console.log('Creating credit batch...');
     const [creditBatch] = await db
@@ -242,7 +291,7 @@ async function seedTestData() {
       .values({
         code: 'CB-TEST-001',
         facilityId: facility.id,
-        productionRunId: productionRun.id, // Explicit link for chain of custody
+        // Production runs are traced via FK chain: CreditBatch → Application → Delivery → BiocharProduct → ProductionRun
         date: '2025-01-31',
         status: 'pending',
 
@@ -274,7 +323,8 @@ async function seedTestData() {
     console.log(`    Durability: ${creditBatch.durabilityOptionType}`);
 
     // ============================================
-    // 7. Link Credit Batch to Application
+    // 9. Link Credit Batch to Application
+    // (Production run is traced via FK chain: Application → Delivery → BiocharProduct → ProductionRun)
     // ============================================
     console.log('Linking credit batch to application...');
     await db.insert(schema.creditBatchApplications).values({
@@ -282,6 +332,7 @@ async function seedTestData() {
       applicationId: application.id,
     });
     console.log(`  ✓ Linked CB-TEST-001 → AP-TEST-001`);
+    console.log(`    FK chain: AP-TEST-001 → DL-TEST-001 → BP-TEST-001 → PR-TEST-001`);
 
     // ============================================
     // Summary
@@ -289,13 +340,21 @@ async function seedTestData() {
     console.log('\n' + '═'.repeat(50));
     console.log('✅ Test Data Seeded Successfully!');
     console.log('═'.repeat(50));
-    console.log('\nChain of Custody:');
-    console.log(`  Facility:        ${facility.id}`);
-    console.log(`  Feedstock Type:  ${feedstockType.id}`);
-    console.log(`  Production Run:  ${productionRun.id}`);
-    console.log(`  Sample:          ${sample.id}`);
-    console.log(`  Application:     ${application.id}`);
-    console.log(`  Credit Batch:    ${creditBatch.id}`);
+    console.log('\nChain of Custody (FK traversal):');
+    console.log(`  Credit Batch:     ${creditBatch.id} (CB-TEST-001)`);
+    console.log(`    ↓`);
+    console.log(`  Application:      ${application.id} (AP-TEST-001)`);
+    console.log(`    ↓`);
+    console.log(`  Delivery:         ${delivery.id} (DL-TEST-001)`);
+    console.log(`    ↓`);
+    console.log(`  Biochar Product:  ${biocharProduct.id} (BP-TEST-001)`);
+    console.log(`    ↓`);
+    console.log(`  Production Run:   ${productionRun.id} (PR-TEST-001)`);
+    console.log(`    ↓`);
+    console.log(`  Sample:           ${sample.id}`);
+    console.log(`\nOther entities:`);
+    console.log(`  Facility:         ${facility.id}`);
+    console.log(`  Feedstock Type:   ${feedstockType.id}`);
 
     console.log('\nNext Steps:');
     console.log('  1. Run pullFeedstockTypes() to match feedstock types');

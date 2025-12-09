@@ -1,2 +1,0 @@
-ALTER TABLE "credit_batches" ADD COLUMN "production_run_id" uuid;--> statement-breakpoint
-ALTER TABLE "credit_batches" ADD CONSTRAINT "credit_batches_production_run_id_production_runs_id_fk" FOREIGN KEY ("production_run_id") REFERENCES "public"."production_runs"("id") ON DELETE no action ON UPDATE no action;

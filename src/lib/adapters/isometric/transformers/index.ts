@@ -35,9 +35,16 @@ export {
 } from './credit-batch';
 
 export {
+  // Single-source removal (legacy, backward compatible)
   mapRemovalTemplateComponents,
   mapComponentInputs,
   validateLocalDataForRemoval,
   getRemovalDataSummary,
   type RemovalLocalData,
+  // Multi-source aggregated removal
+  mapAggregatedRemovalTemplateComponents,
+  mapAggregatedComponentInputs,
+  validateAggregatedDataForRemoval,
+  getAggregatedRemovalDataSummary,
+  type AggregatedRemovalLocalData,
 } from './removal';
