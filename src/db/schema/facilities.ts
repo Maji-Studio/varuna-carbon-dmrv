@@ -12,6 +12,8 @@ export const facilities = pgTable('facilities', {
   location: text('location'),
   gpsLat: real('gps_lat'),
   gpsLng: real('gps_lng'),
+  // --- Isometric Sync ID ---
+  isometricFacilityId: text('isometric_facility_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

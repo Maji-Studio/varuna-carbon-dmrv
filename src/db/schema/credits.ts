@@ -67,6 +67,10 @@ export const creditBatches = pgTable('credit_batches', {
   companyVerificationRef: text('company_verification_ref'), // 3+ years active ag company proof
   mixingTimelineDays: integer('mixing_timeline_days'), // Days until mixed with soil
 
+  // --- Isometric Sync IDs ---
+  isometricRemovalId: text('isometric_removal_id'), // Removal entity for this batch
+  isometricGhgStatementId: text('isometric_ghg_statement_id'), // GHG Statement for verification
+
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
