@@ -329,7 +329,6 @@ CO2e_stored = C_biochar × m_biochar × F_durable × 44.01/12.01
 | `delivery_status` | processing, delivered | deliveries |
 | `application_status` | delivered, applied | applications |
 | `credit_batch_status` | pending, verified, issued | credit_batches |
-| `sync_status` | pending, syncing, synced, error | registry_identities |
 
 ### Type Enums
 
@@ -350,57 +349,19 @@ CO2e_stored = C_biochar × m_biochar × F_durable × 44.01/12.01
 | `transport_method` | road, rail, ship, pipeline, aircraft | transport_legs | Transportation Module |
 | `emissions_calculation_method` | energy_usage, distance_based | transport_legs | Section 3.2, 3.3 |
 
-## Registry Sync Tracking
+## Isometric Sync Tracking
 
-Sync state for external registries (Isometric, Puro, Verra, etc.) is tracked in a single polymorphic table rather than embedding registry-specific fields in each entity table. This keeps core domain tables clean and supports multiple registries.
+Isometric IDs are stored directly on entity tables for simplicity:
 
-### registry_identities Table
+| Table | Column(s) |
+|-------|-----------|
+| `facilities` | `isometric_facility_id` |
+| `feedstock_types` | `isometric_feedstock_type_id` |
+| `production_runs` | `isometric_production_batch_id` |
+| `applications` | `isometric_storage_location_id`, `isometric_biochar_application_id` |
+| `credit_batches` | `isometric_removal_id`, `isometric_ghg_statement_id` |
 
-```typescript
-// src/db/schema/registry.ts
-export const registryIdentities = pgTable('registry_identities', {
-  id: uuid('id').primaryKey().defaultRandom(),
-
-  // Local entity reference (polymorphic)
-  entityType: text('entity_type').notNull(),    // 'facility', 'production_run', etc.
-  entityId: uuid('entity_id').notNull(),
-
-  // Registry details
-  registryName: text('registry_name').notNull(), // 'isometric', 'puro', 'verra'
-  externalEntityType: text('external_entity_type').notNull(), // 'facility', 'storage_location'
-  externalId: text('external_id'),               // ID from external registry
-
-  // Sync tracking
-  syncStatus: syncStatus('sync_status').default('pending').notNull(),
-  lastSyncedAt: timestamp('last_synced_at'),
-  lastSyncError: text('last_sync_error'),
-  metadata: jsonb('metadata'),                   // Registry-specific data
-
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-```
-
-### Entity-to-External-Type Mapping
-
-| Local Entity | Registry | External Entity Types | Rows Created |
-|--------------|----------|----------------------|--------------|
-| `facility` | Isometric | `facility` | 1 |
-| `feedstock_type` | Isometric | `feedstock_type` | 1 |
-| `production_run` | Isometric | `production_batch` | 1 |
-| `application` | Isometric | `storage_location`, `biochar_application` | 2 |
-| `credit_batch` | Isometric | `removal`, `ghg_statement` | 2 |
-
-### Sync Status Enum
-
-| Status | Meaning |
-|--------|---------|
-| `pending` | Not yet synced, ready for sync |
-| `syncing` | Sync in progress |
-| `synced` | Successfully synced, `externalId` populated |
-| `error` | Sync failed, `lastSyncError` contains message |
-
-See [isometric-adapter.md](./isometric-adapter.md) for adapter usage.
+See [isometric-adapter.md](./isometric-adapter.md) for sync usage.
 
 ## Conventions
 

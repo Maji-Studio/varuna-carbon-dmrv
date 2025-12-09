@@ -70,7 +70,8 @@ export const productionRuns = pgTable('production_runs', {
   quenchingDryWeightKg: real('quenching_dry_weight_kg'),
   quenchingWetWeightKg: real('quenching_wet_weight_kg'),
 
-  // Registry sync tracking moved to registry_identities table
+  // --- Isometric Registry Sync ---
+  isometricProductionBatchId: text('isometric_production_batch_id'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -1,31 +1,24 @@
 /**
- * Registry Adapters
+ * Isometric Registry Sync
  *
- * Registry-agnostic adapter pattern for syncing local DMRV data
- * to external carbon credit registries.
+ * Simple sync functions for syncing local DMRV data to Isometric's Certify API.
  *
- * Currently supported registries:
- * - Isometric (https://isometric.com)
+ * Usage:
+ *   import { syncFacility, syncCreditBatch } from '@/lib/adapters';
  *
- * Future registries can be added by implementing the RegistryAdapter interface.
+ *   // Manual sync
+ *   const result = await syncFacility(facilityId);
+ *   if (result.success) {
+ *     console.log('Synced:', result.isometricId);
+ *   }
  */
 
-// Common types
-export type {
-  SyncResult,
-  RegistryAdapter,
-  AdapterConfig,
-  SyncTrigger,
-} from './types';
-
-// Isometric adapter
 export {
-  isometricAdapter,
-  IsometricAdapter,
-  syncAllPending,
-  retryAllFailed,
-  confirmGHGStatements,
-  getSyncSummary,
-  type SyncStats,
-  type SyncOptions,
-} from './isometric';
+  syncFacility,
+  syncFeedstockType,
+  syncProductionRun,
+  syncApplication,
+  syncCreditBatch,
+  confirmGHGStatement,
+  type SyncResult,
+} from './isometric/adapter';

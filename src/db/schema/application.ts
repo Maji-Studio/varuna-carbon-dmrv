@@ -53,7 +53,10 @@ export const applications = pgTable('applications', {
   truckMassOnArrivalKg: real('truck_mass_on_arrival_kg'),
   truckMassOnDepartureKg: real('truck_mass_on_departure_kg'),
 
-  // Registry sync tracking moved to registry_identities table
+  // --- Isometric Registry Sync ---
+  // Application maps to 2 Isometric entities: StorageLocation + BiocharApplication
+  isometricStorageLocationId: text('isometric_storage_location_id'),
+  isometricBiocharApplicationId: text('isometric_biochar_application_id'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

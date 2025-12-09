@@ -109,15 +109,3 @@ export const emissionsCalculationMethod = pgEnum('emissions_calculation_method',
   'distance_based', // Uses distance + weight + emission factors
 ]);
 
-// ============================================
-// Registry Sync Enums
-// ============================================
-
-// Sync status for registry adapters (Isometric, Puro, Verra, etc.)
-// Used to track synchronization state of entities with external registries
-export const syncStatus = pgEnum('sync_status', [
-  'pending', // Not yet synced to registry
-  'syncing', // Currently being synced
-  'synced', // Successfully synced
-  'error', // Sync failed (check lastSyncError)
-]);

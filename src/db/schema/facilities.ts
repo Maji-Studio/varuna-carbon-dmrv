@@ -4,7 +4,6 @@ import { storageLocationType } from './common';
 
 // ============================================
 // Facilities - Production sites
-// Registry sync tracking moved to registry_identities table
 // ============================================
 
 export const facilities = pgTable('facilities', {
@@ -13,6 +12,9 @@ export const facilities = pgTable('facilities', {
   location: text('location'),
   gpsLat: real('gps_lat'),
   gpsLng: real('gps_lng'),
+
+  // --- Isometric Registry Sync ---
+  isometricFacilityId: text('isometric_facility_id'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

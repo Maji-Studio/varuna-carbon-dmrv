@@ -35,6 +35,3 @@ export * from './credits';
 
 // Documentation (Polymorphic)
 export * from './documentation';
-
-// Registry Identities (Multi-registry sync tracking)
-export * from './registry';

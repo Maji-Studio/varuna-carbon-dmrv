@@ -171,14 +171,9 @@ src/lib/isometric/
 
 src/lib/adapters/
 ├── index.ts                          # Public exports
-├── types.ts                          # Registry-agnostic interfaces
-├── sync-config.ts                    # Entity-to-external-type mappings
-├── registry-identity-service.ts      # CRUD for registry_identities table
-├── sync-helpers.ts                   # Utility functions
 └── isometric/
-    ├── index.ts                      # Isometric adapter exports
-    ├── adapter.ts                    # Main IsometricAdapter class
-    ├── sync.ts                       # Batch sync & retry orchestration
+    ├── index.ts                      # Exports
+    ├── adapter.ts                    # Sync functions (~300 lines)
     └── transformers/                 # Data transformation functions
         ├── index.ts
         ├── facility.ts               # facility → Isometric Facility
@@ -186,10 +181,6 @@ src/lib/adapters/
         ├── production.ts             # productionRun → Isometric ProductionBatch
         ├── application.ts            # application → StorageLocation + BiocharApplication
         └── credit-batch.ts           # creditBatch → Removal + GHGStatement
-
-src/db/schema/
-├── ...
-└── registry.ts                       # Polymorphic registry_identities table
 ```
 
 ### Key Concepts

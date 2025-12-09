@@ -1,5 +1,5 @@
 {
-  "id": "4c4ffa6c-f76d-42e5-97fb-7049a1f7f4f0",
+  "id": "de05c7a7-8be1-4122-b5dc-a36fede4f5df",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -95,26 +95,6 @@
         },
         "isometric_facility_id": {
           "name": "isometric_facility_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sync_status": {
-          "name": "sync_status",
-          "type": "sync_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
-        },
-        "last_synced_at": {
-          "name": "last_synced_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_sync_error": {
-          "name": "last_sync_error",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -522,26 +502,6 @@
         },
         "isometric_feedstock_type_id": {
           "name": "isometric_feedstock_type_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sync_status": {
-          "name": "sync_status",
-          "type": "sync_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
-        },
-        "last_synced_at": {
-          "name": "last_synced_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_sync_error": {
-          "name": "last_sync_error",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1171,26 +1131,6 @@
         },
         "isometric_production_batch_id": {
           "name": "isometric_production_batch_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sync_status": {
-          "name": "sync_status",
-          "type": "sync_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
-        },
-        "last_synced_at": {
-          "name": "last_synced_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_sync_error": {
-          "name": "last_sync_error",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -2634,26 +2574,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "sync_status": {
-          "name": "sync_status",
-          "type": "sync_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
-        },
-        "last_synced_at": {
-          "name": "last_synced_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_sync_error": {
-          "name": "last_sync_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -3032,26 +2952,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "sync_status": {
-          "name": "sync_status",
-          "type": "sync_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'pending'"
-        },
-        "last_synced_at": {
-          "name": "last_synced_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_sync_error": {
-          "name": "last_sync_error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -3376,16 +3276,6 @@
         "feedstock_pile",
         "biochar_pile",
         "product_pile"
-      ]
-    },
-    "public.sync_status": {
-      "name": "sync_status",
-      "schema": "public",
-      "values": [
-        "pending",
-        "syncing",
-        "synced",
-        "error"
       ]
     },
     "public.transport_entity_type": {

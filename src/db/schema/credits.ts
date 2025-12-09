@@ -67,7 +67,10 @@ export const creditBatches = pgTable('credit_batches', {
   companyVerificationRef: text('company_verification_ref'), // 3+ years active ag company proof
   mixingTimelineDays: integer('mixing_timeline_days'), // Days until mixed with soil
 
-  // Registry sync tracking moved to registry_identities table
+  // --- Isometric Registry Sync ---
+  // Credit batch maps to 2 Isometric entities: Removal + GHGStatement
+  isometricRemovalId: text('isometric_removal_id'),
+  isometricGhgStatementId: text('isometric_ghg_statement_id'),
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

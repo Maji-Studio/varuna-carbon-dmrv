@@ -1,40 +1,29 @@
 /**
- * Isometric Registry Adapter
+ * Isometric Registry Sync
  *
- * Public exports for the Isometric adapter module.
+ * Public exports for Isometric sync functions.
  *
  * Usage:
  * ```typescript
- * import { isometricAdapter, syncAllPending, retryAllFailed } from '@/lib/adapters/isometric';
+ * import { syncFacility, syncCreditBatch } from '@/lib/adapters/isometric';
  *
- * // Sync a single entity
- * const result = await isometricAdapter.syncFacility(facilityId);
- *
- * // Batch sync all pending entities
- * const stats = await syncAllPending();
- *
- * // Retry failed syncs
- * const retryStats = await retryAllFailed();
+ * const result = await syncFacility(facilityId);
+ * if (result.success) {
+ *   console.log('Synced to Isometric:', result.isometricId);
+ * }
  * ```
  */
 
-// Main adapter
-export { IsometricAdapter, isometricAdapter } from './adapter';
-
-// Sync orchestration
+// Sync functions
 export {
-  syncPendingFacilities,
-  syncPendingFeedstockTypes,
-  syncPendingProductionRuns,
-  syncPendingApplications,
-  syncPendingCreditBatches,
-  syncAllPending,
-  retryAllFailed,
-  confirmGHGStatements,
-  getSyncSummary,
-  type SyncStats,
-  type SyncOptions,
-} from './sync';
+  syncFacility,
+  syncFeedstockType,
+  syncProductionRun,
+  syncApplication,
+  syncCreditBatch,
+  confirmGHGStatement,
+  type SyncResult,
+} from './adapter';
 
 // Transformers (for advanced use cases)
 export * as transformers from './transformers';
