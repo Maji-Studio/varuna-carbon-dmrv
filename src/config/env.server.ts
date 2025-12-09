@@ -13,4 +13,10 @@ export const serverEnv = {
   ISOMETRIC_ENVIRONMENT: (process.env.ISOMETRIC_ENVIRONMENT || 'sandbox') as
     | 'sandbox'
     | 'production',
+
+  // Isometric project configuration
+  // Get project ID from Certify UI: https://certify.isometric.com
+  ISOMETRIC_PROJECT_ID: process.env.ISOMETRIC_PROJECT_ID || '',
+  // Get removal template ID from project's removal templates
+  ISOMETRIC_REMOVAL_TEMPLATE_ID: process.env.ISOMETRIC_REMOVAL_TEMPLATE_ID || '',
 } as const;

@@ -33,3 +33,11 @@ export {
   validateCreditBatchForSync,
   mapGHGStatementStatusToLocal,
 } from './credit-batch';
+
+export {
+  mapRemovalTemplateComponents,
+  mapComponentInputs,
+  validateLocalDataForRemoval,
+  getRemovalDataSummary,
+  type RemovalLocalData,
+} from './removal';
