@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
@@ -37,7 +38,15 @@ export function BiocharProductFormPage({ options, formulations }: BiocharProduct
       notes: "" as string | undefined,
     },
     onSubmit: async ({ value }) => {
-      await createBiocharProduct(value);
+      // Check completion at submit time
+      const isCompleteAtSubmit = Boolean(value.facilityId);
+
+      const result = await createBiocharProduct(value);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(isCompleteAtSubmit ? "Biochar product completed" : "Draft saved");
       router.push("/data-entry");
     },
   });
@@ -61,11 +70,17 @@ export function BiocharProductFormPage({ options, formulations }: BiocharProduct
   const productStorageOptions = productStorageLocations.map((l) => ({ value: l.id, label: l.name }));
 
   return (
-    <FormPageLayout
-      title="New Biochar Product"
-      onSubmit={form.handleSubmit}
-      isSubmitting={form.state.isSubmitting}
-    >
+    <form.Subscribe selector={(state) => state.values}>
+      {(values) => {
+        const isComplete = Boolean(values.facilityId);
+
+        return (
+          <FormPageLayout
+            title="New Biochar Product"
+            onSubmit={form.handleSubmit}
+            isSubmitting={form.state.isSubmitting}
+            isComplete={isComplete}
+          >
       {/* Overview */}
       <FormSection title="Overview">
         <form.AppField name="facilityId">
@@ -74,6 +89,7 @@ export function BiocharProductFormPage({ options, formulations }: BiocharProduct
               label="Facility"
               placeholder="Select facility"
               options={facilityOptions}
+              required
             />
           )}
         </form.AppField>
@@ -203,6 +219,9 @@ export function BiocharProductFormPage({ options, formulations }: BiocharProduct
           accept="image/*,video/*"
         />
       </FormSection>
-    </FormPageLayout>
+          </FormPageLayout>
+        );
+      }}
+    </form.Subscribe>
   );
 }

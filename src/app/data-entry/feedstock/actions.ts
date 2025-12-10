@@ -27,11 +27,15 @@ async function generateFeedstockCode(): Promise<string> {
   return `${prefix}${nextNumber}`;
 }
 
-export async function createFeedstock(values: Omit<FeedstockFormValues, "photos">) {
+export type ActionResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export async function createFeedstock(values: Omit<FeedstockFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
   // Validate required facilityId
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
-    throw new Error("Facility is required");
+    return { success: false, error: "Facility is required" };
   }
 
   const code = await generateFeedstockCode();
@@ -64,14 +68,14 @@ export async function createFeedstock(values: Omit<FeedstockFormValues, "photos"
   revalidatePath("/data-entry");
   revalidatePath("/data-entry/feedstock");
 
-  return { id: result[0].id };
+  return { success: true as const, data: { id: result[0].id } };
 }
 
-export async function updateFeedstock(id: string, values: Omit<FeedstockFormValues, "photos">) {
+export async function updateFeedstock(id: string, values: Omit<FeedstockFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
   // Validate required facilityId
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
-    throw new Error("Facility is required");
+    return { success: false, error: "Facility is required" };
   }
 
   // Determine status based on required fields
@@ -104,7 +108,7 @@ export async function updateFeedstock(id: string, values: Omit<FeedstockFormValu
   revalidatePath("/data-entry");
   revalidatePath("/data-entry/feedstock");
 
-  return { id };
+  return { success: true as const, data: { id } };
 }
 
 export async function getFeedstock(id: string) {

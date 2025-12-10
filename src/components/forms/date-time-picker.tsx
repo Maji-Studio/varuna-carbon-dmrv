@@ -24,9 +24,10 @@ interface DatePickerFieldProps {
   label: string;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 }
 
-export function DatePickerField({ label, placeholder, className }: DatePickerFieldProps) {
+export function DatePickerField({ label, placeholder, className, required }: DatePickerFieldProps) {
   const field = useFieldContext<Date | string | undefined>();
   const [open, setOpen] = React.useState(false);
 
@@ -39,6 +40,7 @@ export function DatePickerField({ label, placeholder, className }: DatePickerFie
       label={label}
       className={className}
       error={field.state.meta.errors?.[0]?.message}
+      required={required}
     >
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -77,9 +79,10 @@ interface DateTimePickerFieldProps {
   label: string;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 }
 
-export function DateTimePickerField({ label, placeholder, className }: DateTimePickerFieldProps) {
+export function DateTimePickerField({ label, placeholder, className, required }: DateTimePickerFieldProps) {
   const field = useFieldContext<Date | string | undefined>();
   const [open, setOpen] = React.useState(false);
 
@@ -105,6 +108,7 @@ export function DateTimePickerField({ label, placeholder, className }: DateTimeP
       label={label}
       className={className}
       error={field.state.meta.errors?.[0]?.message}
+      required={required}
     >
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>

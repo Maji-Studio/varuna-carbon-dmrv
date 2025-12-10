@@ -91,6 +91,16 @@ The first feedstock source is also stored in `feedstockStorageLocationId` for ba
 - [x] **Fixed UUID validation** in all form actions (empty strings → null)
 - [x] **Multi-feedstock JSON storage** in `feedstockMix` field
 
+## Completed (Dec 10, 2025) - Form UX Improvements
+
+- [x] **Toast notifications** for form errors using sonner (`src/components/ui/sonner.tsx`)
+- [x] **Required field indicators** - asterisk (*) shown for required fields in all forms
+- [x] **Last edited timestamps** - incomplete entries show relative time ("Edited 2h ago")
+- [x] **Smart "Show All (X)" button** - only visible when >5 incomplete entries
+- [x] **Entries sorted by most recently edited** - uses `updatedAt` for sorting
+- [x] **ActionResult pattern** - all form actions return `{ success, data/error }` instead of throwing
+- [x] **Inline + toast error display** - form errors shown both inline and as toast notifications
+
 ### Workarounds Applied
 
 | Issue | Workaround |
@@ -111,6 +121,12 @@ The first feedstock source is also stored in `feedstockStorageLocationId` for ba
 - Sampling: `src/app/data-entry/sampling/`
 - Incident: `src/app/data-entry/incident/`
 - Biochar Product: `src/app/data-entry/biochar-product/`
+
+### Form Components
+- Field components: `src/components/forms/form-field.tsx` (with required indicator support)
+- Toast: `src/components/ui/sonner.tsx`
+- Incomplete entries list: `src/components/data-entry/incomplete-entries-section.tsx`
+- Relative time helper: `src/lib/utils.ts` (`formatRelativeTime`)
 
 ### ~~Sheet-Based Forms (Legacy)~~ DELETED
 - ~~Forms: `src/components/forms/data-entry/`~~ - Removed to reduce duplication
@@ -165,5 +181,5 @@ const form = useAppForm({
 
 ### Remaining TODO
 
-- Form-level Zod validation not yet connected (only field-level validators used)
 - Photo uploads not persisted (documents table pending)
+- Form-level Zod validation not yet connected (only field-level validators used; server-side validation with toast errors now working)

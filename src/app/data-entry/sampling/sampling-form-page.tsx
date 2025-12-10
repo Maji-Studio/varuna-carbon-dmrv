@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
@@ -42,7 +43,15 @@ export function SamplingFormPage({ options, productionRuns }: SamplingFormPagePr
       notes: "" as string | undefined,
     },
     onSubmit: async ({ value }) => {
-      await createSample(value);
+      // Check completion at submit time
+      const isCompleteAtSubmit = Boolean(value.productionRunId);
+
+      const result = await createSample(value);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(isCompleteAtSubmit ? "Sample completed" : "Draft saved");
       router.push("/data-entry");
     },
   });
@@ -53,11 +62,17 @@ export function SamplingFormPage({ options, productionRuns }: SamplingFormPagePr
   const operatorOptions = options.operators.map((o) => ({ value: o.id, label: o.name }));
 
   return (
-    <FormPageLayout
-      title="New Sampling"
-      onSubmit={form.handleSubmit}
-      isSubmitting={form.state.isSubmitting}
-    >
+    <form.Subscribe selector={(state) => state.values}>
+      {(values) => {
+        const isComplete = Boolean(values.productionRunId);
+
+        return (
+          <FormPageLayout
+            title="New Sampling"
+            onSubmit={form.handleSubmit}
+            isSubmitting={form.state.isSubmitting}
+            isComplete={isComplete}
+          >
       {/* Overview */}
       <FormSection title="Overview">
         <form.AppField name="productionRunId">
@@ -66,6 +81,7 @@ export function SamplingFormPage({ options, productionRuns }: SamplingFormPagePr
               label="Production Run"
               placeholder="Select production run"
               options={productionRunOptions}
+              required
             />
           )}
         </form.AppField>
@@ -182,6 +198,9 @@ export function SamplingFormPage({ options, productionRuns }: SamplingFormPagePr
           accept="image/*,video/*"
         />
       </FormSection>
-    </FormPageLayout>
+          </FormPageLayout>
+        );
+      }}
+    </form.Subscribe>
   );
 }

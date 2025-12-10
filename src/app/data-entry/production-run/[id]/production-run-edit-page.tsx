@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
@@ -80,12 +81,24 @@ export function ProductionRunEditPage({ options, productionRun }: ProductionRunE
       electricityKwh: productionRun.electricityKwh ?? undefined,
     },
     onSubmit: async ({ value }) => {
+      // Check completion at submit time
+      const validFeedstockInputs = feedstockInputs
+        .filter((f) => f.storageLocationId && f.amountKg !== undefined && f.amountKg > 0);
+      const isCompleteAtSubmit = Boolean(
+        value.facilityId &&
+        validFeedstockInputs.length > 0 &&
+        value.biocharAmountKg !== undefined &&
+        value.biocharAmountKg > 0
+      );
+
       await updateProductionRun(productionRun.id, {
         ...value,
-        feedstockInputs: feedstockInputs
-          .filter((f) => f.storageLocationId && f.amountKg !== undefined)
-          .map((f) => ({ storageLocationId: f.storageLocationId, amountKg: f.amountKg! })),
+        feedstockInputs: validFeedstockInputs.map((f) => ({
+          storageLocationId: f.storageLocationId,
+          amountKg: f.amountKg!,
+        })),
       });
+      toast.success(isCompleteAtSubmit ? "Production run completed" : "Draft updated");
       router.push("/data-entry");
     },
   });
@@ -129,13 +142,29 @@ export function ProductionRunEditPage({ options, productionRun }: ProductionRunE
     setFeedstockInputs(updated);
   };
 
+  // Check if all required fields are filled (feedstock inputs are external state)
+  const hasFeedstockInput = feedstockInputs.some(
+    (f) => f.storageLocationId && f.amountKg !== undefined && f.amountKg > 0
+  );
+
   return (
-    <FormPageLayout
-      title="Edit Production Run"
-      onSubmit={form.handleSubmit}
-      isSubmitting={form.state.isSubmitting}
-      submitLabel="Update"
-    >
+    <form.Subscribe selector={(state) => state.values}>
+      {(values) => {
+        const isComplete = Boolean(
+          values.facilityId &&
+          hasFeedstockInput &&
+          values.biocharAmountKg !== undefined &&
+          values.biocharAmountKg > 0
+        );
+
+        return (
+          <FormPageLayout
+            title="Edit Production Run"
+            onSubmit={form.handleSubmit}
+            isSubmitting={form.state.isSubmitting}
+            hasDraft
+            isComplete={isComplete}
+          >
       {/* Overview */}
       <FormSection title="Overview">
         <form.AppField name="facilityId">
@@ -347,6 +376,9 @@ export function ProductionRunEditPage({ options, productionRun }: ProductionRunE
           )}
         </form.AppField>
       </FormSection>
-    </FormPageLayout>
+          </FormPageLayout>
+        );
+      }}
+    </form.Subscribe>
   );
 }

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Wheat, Flame } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 
 type EntryType = "feedstock" | "production_run";
 
@@ -15,7 +15,9 @@ interface IncompleteEntryItemProps {
   description?: string;
   weight?: string;
   missingCount: number;
+  updatedAt: Date;
   className?: string;
+  isCompleted?: boolean;
 }
 
 const typeConfig: Record<
@@ -42,7 +44,9 @@ export function IncompleteEntryItem({
   description,
   weight,
   missingCount,
+  updatedAt,
   className,
+  isCompleted = false,
 }: IncompleteEntryItemProps) {
   const config = typeConfig[type];
   const Icon = config.icon;
@@ -63,9 +67,15 @@ export function IncompleteEntryItem({
             {config.label}
           </span>
         </div>
-        <span className="shrink-0 rounded-lg bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-900">
-          {missingCount} missing
-        </span>
+        {isCompleted ? (
+          <span className="shrink-0 rounded-lg bg-green-100 px-2 py-0.5 text-xs font-medium text-green-900">
+            Complete
+          </span>
+        ) : (
+          <span className="shrink-0 rounded-lg bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-900">
+            {missingCount} missing
+          </span>
+        )}
       </div>
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="truncate">
@@ -73,6 +83,9 @@ export function IncompleteEntryItem({
           {description && ` • ${description}`}
         </span>
         {weight && <span className="shrink-0">{weight}</span>}
+      </div>
+      <div className="text-xs text-muted-foreground/70">
+        {formatRelativeTime(updatedAt)}
       </div>
     </Link>
   );

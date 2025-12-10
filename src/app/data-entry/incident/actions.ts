@@ -19,11 +19,15 @@ interface CreateIncidentValues {
   notes?: string;
 }
 
-export async function createIncident(values: CreateIncidentValues) {
+export type ActionResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export async function createIncident(values: CreateIncidentValues): Promise<ActionResult<{ id: string }>> {
   // Validate required productionRunId
   const productionRunId = toUuidOrNull(values.productionRunId);
   if (!productionRunId) {
-    throw new Error("Production Run is required");
+    return { success: false, error: "Production Run is required" };
   }
 
   const result = await db.insert(incidentReports).values({
@@ -37,7 +41,7 @@ export async function createIncident(values: CreateIncidentValues) {
   revalidatePath("/data-entry");
   revalidatePath("/data-entry/incident");
 
-  return { id: result[0].id };
+  return { success: true, data: { id: result[0].id } };
 }
 
 export async function getIncident(id: string) {

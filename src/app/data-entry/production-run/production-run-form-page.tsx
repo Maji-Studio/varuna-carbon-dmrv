@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
@@ -60,12 +61,28 @@ export function ProductionRunFormPage({ options }: ProductionRunFormPageProps) {
       electricityKwh: undefined as number | undefined,
     },
     onSubmit: async ({ value }) => {
-      await createProductionRun({
+      // Check completion at submit time
+      const validFeedstockInputs = feedstockInputs
+        .filter((f) => f.storageLocationId && f.amountKg !== undefined && f.amountKg > 0);
+      const isCompleteAtSubmit = Boolean(
+        value.facilityId &&
+        validFeedstockInputs.length > 0 &&
+        value.biocharAmountKg !== undefined &&
+        value.biocharAmountKg > 0
+      );
+
+      const result = await createProductionRun({
         ...value,
-        feedstockInputs: feedstockInputs
-          .filter((f) => f.storageLocationId && f.amountKg !== undefined)
-          .map((f) => ({ storageLocationId: f.storageLocationId, amountKg: f.amountKg! })),
+        feedstockInputs: validFeedstockInputs.map((f) => ({
+          storageLocationId: f.storageLocationId,
+          amountKg: f.amountKg!,
+        })),
       });
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(isCompleteAtSubmit ? "Production run completed" : "Draft saved");
       router.push("/data-entry");
     },
   });
@@ -109,12 +126,28 @@ export function ProductionRunFormPage({ options }: ProductionRunFormPageProps) {
     setFeedstockInputs(updated);
   };
 
+  // Check if all required fields are filled (feedstock inputs are external state)
+  const hasFeedstockInput = feedstockInputs.some(
+    (f) => f.storageLocationId && f.amountKg !== undefined && f.amountKg > 0
+  );
+
   return (
-    <FormPageLayout
-      title="New Production Run"
-      onSubmit={form.handleSubmit}
-      isSubmitting={form.state.isSubmitting}
-    >
+    <form.Subscribe selector={(state) => state.values}>
+      {(values) => {
+        const isComplete = Boolean(
+          values.facilityId &&
+          hasFeedstockInput &&
+          values.biocharAmountKg !== undefined &&
+          values.biocharAmountKg > 0
+        );
+
+        return (
+          <FormPageLayout
+            title="New Production Run"
+            onSubmit={form.handleSubmit}
+            isSubmitting={form.state.isSubmitting}
+            isComplete={isComplete}
+          >
       {/* Overview */}
       <FormSection title="Overview">
         <form.AppField name="facilityId">
@@ -123,6 +156,7 @@ export function ProductionRunFormPage({ options }: ProductionRunFormPageProps) {
               label="Facility"
               placeholder="Select facility"
               options={facilityOptions}
+              required
             />
           )}
         </form.AppField>
@@ -172,7 +206,10 @@ export function ProductionRunFormPage({ options }: ProductionRunFormPageProps) {
         {feedstockInputs.map((input, index) => (
           <div key={index} className="flex gap-4 items-end">
             <div className="flex flex-col gap-1 flex-1">
-              <Label className="text-sm font-medium">Feedstock Storage</Label>
+              <Label className="text-sm font-medium">
+                Feedstock Storage
+                <span className="text-destructive ml-0.5">*</span>
+              </Label>
               <Select
                 value={input.storageLocationId}
                 onValueChange={(value) =>
@@ -192,7 +229,10 @@ export function ProductionRunFormPage({ options }: ProductionRunFormPageProps) {
               </Select>
             </div>
             <div className="flex flex-col gap-1 w-[120px]">
-              <Label className="text-sm font-medium">Amount (kg)</Label>
+              <Label className="text-sm font-medium">
+                Amount (kg)
+                <span className="text-destructive ml-0.5">*</span>
+              </Label>
               <Input
                 type="number"
                 step="0.1"
@@ -260,6 +300,7 @@ export function ProductionRunFormPage({ options }: ProductionRunFormPageProps) {
               label="Biochar Amount"
               unit="kg"
               placeholder="Enter biochar amount"
+              required
             />
           )}
         </form.AppField>
@@ -317,6 +358,9 @@ export function ProductionRunFormPage({ options }: ProductionRunFormPageProps) {
           )}
         </form.AppField>
       </FormSection>
-    </FormPageLayout>
+          </FormPageLayout>
+        );
+      }}
+    </form.Subscribe>
   );
 }

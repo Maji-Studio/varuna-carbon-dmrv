@@ -26,11 +26,15 @@ async function generateProductionRunCode(): Promise<string> {
   return `${prefix}${nextNumber}`;
 }
 
-export async function createProductionRun(values: ProductionRunFormValues) {
+export type ActionResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export async function createProductionRun(values: ProductionRunFormValues): Promise<ActionResult<{ id: string }>> {
   // Validate required facilityId
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
-    throw new Error("Facility is required");
+    return { success: false, error: "Facility is required" };
   }
 
   const code = await generateProductionRunCode();
@@ -78,14 +82,14 @@ export async function createProductionRun(values: ProductionRunFormValues) {
   revalidatePath("/data-entry");
   revalidatePath("/data-entry/production-run");
 
-  return { id: result[0].id };
+  return { success: true as const, data: { id: result[0].id } };
 }
 
-export async function updateProductionRun(id: string, values: ProductionRunFormValues & { endTime?: Date }) {
+export async function updateProductionRun(id: string, values: ProductionRunFormValues & { endTime?: Date }): Promise<ActionResult<{ id: string }>> {
   // Validate required facilityId
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
-    throw new Error("Facility is required");
+    return { success: false, error: "Facility is required" };
   }
 
   // Calculate total feedstock amount from inputs
@@ -137,7 +141,7 @@ export async function updateProductionRun(id: string, values: ProductionRunFormV
   revalidatePath("/data-entry");
   revalidatePath("/data-entry/production-run");
 
-  return { id };
+  return { success: true as const, data: { id } };
 }
 
 export async function getProductionRun(id: string) {

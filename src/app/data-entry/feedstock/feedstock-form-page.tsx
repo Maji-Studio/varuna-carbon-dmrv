@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
@@ -49,7 +50,23 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
       notes: "" as string | undefined,
     },
     onSubmit: async ({ value }) => {
-      await createFeedstock(value);
+      // Check completion at submit time
+      const isCompleteAtSubmit = Boolean(
+        value.facilityId &&
+        value.supplierId &&
+        value.feedstockTypeId &&
+        value.weightKg !== undefined &&
+        value.weightKg > 0 &&
+        value.moisturePercent !== undefined &&
+        value.storageLocationId
+      );
+
+      const result = await createFeedstock(value);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(isCompleteAtSubmit ? "Feedstock entry completed" : "Draft saved");
       router.push("/data-entry");
     },
   });
@@ -69,11 +86,26 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
   );
 
   return (
-    <FormPageLayout
-      title="New Feedstock"
-      onSubmit={form.handleSubmit}
-      isSubmitting={form.state.isSubmitting}
-    >
+    <form.Subscribe selector={(state) => state.values}>
+      {(values) => {
+        // Check if all required fields are filled
+        const isComplete = Boolean(
+          values.facilityId &&
+          values.supplierId &&
+          values.feedstockTypeId &&
+          values.weightKg !== undefined &&
+          values.weightKg > 0 &&
+          values.moisturePercent !== undefined &&
+          values.storageLocationId
+        );
+
+        return (
+          <FormPageLayout
+            title="New Feedstock"
+            onSubmit={form.handleSubmit}
+            isSubmitting={form.state.isSubmitting}
+            isComplete={isComplete}
+          >
       {/* Delivery Information */}
       <FormSection title="Delivery Information">
         <form.AppField name="facilityId">
@@ -82,6 +114,7 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
               label="Facility"
               placeholder="Select facility"
               options={facilityOptions}
+              required
             />
           )}
         </form.AppField>
@@ -101,6 +134,7 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
               label="Supplier"
               placeholder="Select supplier"
               options={supplierOptions}
+              required
             />
           )}
         </form.AppField>
@@ -152,6 +186,7 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
               label="Feedstock Type"
               placeholder="Select feedstock type"
               options={feedstockTypeOptions}
+              required
             />
           )}
         </form.AppField>
@@ -162,6 +197,7 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
               label="Feedstock Weight"
               unit="kg"
               placeholder="Enter weight"
+              required
             />
           )}
         </form.AppField>
@@ -172,6 +208,7 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
               label="Moisture Content"
               unit="%"
               placeholder="Enter moisture content"
+              required
             />
           )}
         </form.AppField>
@@ -182,6 +219,7 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
               label="Storage"
               placeholder="Select storage"
               options={feedstockStorageOptions}
+              required
             />
           )}
         </form.AppField>
@@ -206,6 +244,9 @@ export function FeedstockFormPage({ options }: FeedstockFormPageProps) {
           accept="image/*"
         />
       </FormSection>
-    </FormPageLayout>
+          </FormPageLayout>
+        );
+      }}
+    </form.Subscribe>
   );
 }

@@ -11,7 +11,10 @@ interface FormPageLayoutProps {
   children: React.ReactNode;
   onSubmit?: () => void;
   isSubmitting?: boolean;
-  submitLabel?: string;
+  /** Whether editing an existing draft */
+  hasDraft?: boolean;
+  /** Whether all required fields are filled */
+  isComplete?: boolean;
   cancelLabel?: string;
   className?: string;
 }
@@ -21,10 +24,23 @@ export function FormPageLayout({
   children,
   onSubmit,
   isSubmitting = false,
-  submitLabel = "Save",
+  hasDraft = false,
+  isComplete = false,
   cancelLabel = "Cancel",
   className,
 }: FormPageLayoutProps) {
+  // Determine button label based on state
+  const getSubmitLabel = () => {
+    if (isComplete) return "Finish Data Entry";
+    if (hasDraft) return "Update";
+    return "Save Draft";
+  };
+
+  const getSubmittingLabel = () => {
+    if (isComplete) return "Finishing...";
+    if (hasDraft) return "Updating...";
+    return "Saving...";
+  };
   const router = useRouter();
 
   const handleCancel = () => {
@@ -68,7 +84,7 @@ export function FormPageLayout({
             onClick={onSubmit}
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Saving..." : submitLabel}
+            {isSubmitting ? getSubmittingLabel() : getSubmitLabel()}
           </Button>
           <Button
             type="button"

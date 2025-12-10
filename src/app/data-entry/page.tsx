@@ -1,10 +1,11 @@
-import { getIncompleteEntries } from "./actions";
-import { DataEntryCard, IncompleteEntryItem } from "@/components/data-entry";
-import { Button } from "@/components/ui/button";
+import { getIncompleteEntries, getCompletedEntries } from "./actions";
+import { DataEntryCard, EntriesTabs } from "@/components/data-entry";
 
 export default async function DataEntryPage() {
-  const incompleteEntries = await getIncompleteEntries();
-  const totalIncomplete = incompleteEntries.length;
+  const [incompleteEntries, completedEntries] = await Promise.all([
+    getIncompleteEntries(),
+    getCompletedEntries(),
+  ]);
 
   return (
     <div className="min-h-screen bg-neutral-100">
@@ -19,49 +20,11 @@ export default async function DataEntryPage() {
 
         {/* Data Entry Hub */}
         <div className="flex flex-col gap-6">
-          {/* Incomplete Data Entries Card */}
-          <div className="flex flex-col gap-6 rounded-xl border border-stone-200 bg-white p-6">
-            {/* Card Header */}
-            <div className="flex items-center gap-2">
-              <h2 className="flex-1 text-base font-medium text-foreground">
-                Incomplete Data Entries
-              </h2>
-              {totalIncomplete > 0 && (
-                <span className="rounded-md bg-red-500 px-2 py-0.5 text-xs font-medium text-white">
-                  {totalIncomplete}
-                </span>
-              )}
-            </div>
-
-            {/* Entries List */}
-            {incompleteEntries.length > 0 ? (
-              <div className="flex flex-col gap-4">
-                {incompleteEntries.map((entry) => (
-                  <IncompleteEntryItem
-                    key={`${entry.type}-${entry.id}`}
-                    id={entry.id}
-                    type={entry.type}
-                    name={entry.name}
-                    date={entry.date}
-                    description={entry.description}
-                    weight={entry.weight}
-                    missingCount={entry.missingCount}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No incomplete entries. Great job!
-              </p>
-            )}
-
-            {/* Show More Button */}
-            {totalIncomplete > 0 && (
-              <Button variant="outline" className="w-full">
-                Show More
-              </Button>
-            )}
-          </div>
+          {/* Data Entries with Tabs */}
+          <EntriesTabs
+            incompleteEntries={incompleteEntries}
+            completedEntries={completedEntries}
+          />
 
           {/* Entry Point Cards Grid */}
           <div className="flex flex-col gap-2">

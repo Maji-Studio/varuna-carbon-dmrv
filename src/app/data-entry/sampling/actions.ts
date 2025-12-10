@@ -25,11 +25,15 @@ interface CreateSampleValues {
   notes?: string;
 }
 
-export async function createSample(values: CreateSampleValues) {
+export type ActionResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export async function createSample(values: CreateSampleValues): Promise<ActionResult<{ id: string }>> {
   // Validate required productionRunId
   const productionRunId = toUuidOrNull(values.productionRunId);
   if (!productionRunId) {
-    throw new Error("Production Run is required");
+    return { success: false, error: "Production Run is required" };
   }
 
   const result = await db.insert(samples).values({
@@ -49,7 +53,7 @@ export async function createSample(values: CreateSampleValues) {
   revalidatePath("/data-entry");
   revalidatePath("/data-entry/sampling");
 
-  return { id: result[0].id };
+  return { success: true, data: { id: result[0].id } };
 }
 
 export async function getSample(id: string) {

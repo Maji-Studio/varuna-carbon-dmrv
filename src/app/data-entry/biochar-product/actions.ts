@@ -26,11 +26,15 @@ async function generateBiocharProductCode(): Promise<string> {
   return `${prefix}${nextNumber}`;
 }
 
-export async function createBiocharProduct(values: Omit<BiocharProductFormValues, "photos">) {
+export type ActionResult<T = unknown> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+
+export async function createBiocharProduct(values: Omit<BiocharProductFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
   // Validate required facilityId
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
-    throw new Error("Facility is required");
+    return { success: false, error: "Facility is required" };
   }
 
   const code = await generateBiocharProductCode();
@@ -53,7 +57,7 @@ export async function createBiocharProduct(values: Omit<BiocharProductFormValues
   revalidatePath("/data-entry");
   revalidatePath("/data-entry/biochar-product");
 
-  return { id: result[0].id };
+  return { success: true, data: { id: result[0].id } };
 }
 
 export async function getBiocharProduct(id: string) {

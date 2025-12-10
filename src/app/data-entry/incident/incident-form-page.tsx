@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
@@ -36,7 +37,15 @@ export function IncidentFormPage({ options, productionRuns }: IncidentFormPagePr
       notes: "" as string | undefined,
     },
     onSubmit: async ({ value }) => {
-      await createIncident(value);
+      // Check completion at submit time
+      const isCompleteAtSubmit = Boolean(value.productionRunId);
+
+      const result = await createIncident(value);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(isCompleteAtSubmit ? "Incident report completed" : "Draft saved");
       router.push("/data-entry");
     },
   });
@@ -47,11 +56,17 @@ export function IncidentFormPage({ options, productionRuns }: IncidentFormPagePr
   const operatorOptions = options.operators.map((o) => ({ value: o.id, label: o.name }));
 
   return (
-    <FormPageLayout
-      title="New Incident Report"
-      onSubmit={form.handleSubmit}
-      isSubmitting={form.state.isSubmitting}
-    >
+    <form.Subscribe selector={(state) => state.values}>
+      {(values) => {
+        const isComplete = Boolean(values.productionRunId);
+
+        return (
+          <FormPageLayout
+            title="New Incident Report"
+            onSubmit={form.handleSubmit}
+            isSubmitting={form.state.isSubmitting}
+            isComplete={isComplete}
+          >
       {/* Overview */}
       <FormSection title="Overview">
         <form.AppField name="productionRunId">
@@ -60,6 +75,7 @@ export function IncidentFormPage({ options, productionRuns }: IncidentFormPagePr
               label="Production Run"
               placeholder="Select production run"
               options={productionRunOptions}
+              required
             />
           )}
         </form.AppField>
@@ -113,6 +129,9 @@ export function IncidentFormPage({ options, productionRuns }: IncidentFormPagePr
           accept="image/*,video/*"
         />
       </FormSection>
-    </FormPageLayout>
+          </FormPageLayout>
+        );
+      }}
+    </form.Subscribe>
   );
 }

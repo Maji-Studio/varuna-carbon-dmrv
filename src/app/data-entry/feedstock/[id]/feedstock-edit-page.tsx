@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
@@ -63,7 +64,23 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
       notes: "" as string | undefined,
     },
     onSubmit: async ({ value }) => {
-      await updateFeedstock(feedstock.id, value);
+      // Check completion at submit time
+      const isCompleteAtSubmit = Boolean(
+        value.facilityId &&
+        value.supplierId &&
+        value.feedstockTypeId &&
+        value.weightKg !== undefined &&
+        value.weightKg > 0 &&
+        value.moisturePercent !== undefined &&
+        value.storageLocationId
+      );
+
+      const result = await updateFeedstock(feedstock.id, value);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(isCompleteAtSubmit ? "Feedstock entry completed" : "Draft updated");
       router.push("/data-entry");
     },
   });
@@ -83,12 +100,26 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
   );
 
   return (
-    <FormPageLayout
-      title="Edit Feedstock"
-      onSubmit={form.handleSubmit}
-      isSubmitting={form.state.isSubmitting}
-      submitLabel="Update"
-    >
+    <form.Subscribe selector={(state) => state.values}>
+      {(values) => {
+        const isComplete = Boolean(
+          values.facilityId &&
+          values.supplierId &&
+          values.feedstockTypeId &&
+          values.weightKg !== undefined &&
+          values.weightKg > 0 &&
+          values.moisturePercent !== undefined &&
+          values.storageLocationId
+        );
+
+        return (
+          <FormPageLayout
+            title="Edit Feedstock"
+            onSubmit={form.handleSubmit}
+            isSubmitting={form.state.isSubmitting}
+            hasDraft
+            isComplete={isComplete}
+          >
       {/* Delivery Information */}
       <FormSection title="Delivery Information">
         <form.AppField name="facilityId">
@@ -97,6 +128,7 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
               label="Facility"
               placeholder="Select facility"
               options={facilityOptions}
+              required
             />
           )}
         </form.AppField>
@@ -116,6 +148,7 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
               label="Supplier"
               placeholder="Select supplier"
               options={supplierOptions}
+              required
             />
           )}
         </form.AppField>
@@ -167,6 +200,7 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
               label="Feedstock Type"
               placeholder="Select feedstock type"
               options={feedstockTypeOptions}
+              required
             />
           )}
         </form.AppField>
@@ -177,6 +211,7 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
               label="Feedstock Weight"
               unit="kg"
               placeholder="Enter weight"
+              required
             />
           )}
         </form.AppField>
@@ -187,6 +222,7 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
               label="Moisture Content"
               unit="%"
               placeholder="Enter moisture content"
+              required
             />
           )}
         </form.AppField>
@@ -197,6 +233,7 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
               label="Storage"
               placeholder="Select storage"
               options={feedstockStorageOptions}
+              required
             />
           )}
         </form.AppField>
@@ -221,6 +258,9 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
           accept="image/*"
         />
       </FormSection>
-    </FormPageLayout>
+          </FormPageLayout>
+        );
+      }}
+    </form.Subscribe>
   );
 }

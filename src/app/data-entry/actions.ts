@@ -26,6 +26,7 @@ export type IncompleteEntry = {
   description?: string;
   weight?: string;
   missingCount: number;
+  updatedAt: Date;
 };
 
 export async function getIncompleteEntries(): Promise<IncompleteEntry[]> {
@@ -64,6 +65,7 @@ export async function getIncompleteEntries(): Promise<IncompleteEntry[]> {
       description: f.feedstockType?.name,
       weight: f.weightKg ? `${f.weightKg.toLocaleString()} kg` : undefined,
       missingCount: Math.max(missingCount, 1),
+      updatedAt: f.updatedAt,
     };
   });
 
@@ -86,12 +88,77 @@ export async function getIncompleteEntries(): Promise<IncompleteEntry[]> {
           ? `${pr.feedstockAmountKg.toLocaleString()} kg`
           : undefined,
         missingCount: Math.max(missingCount, 1),
+        updatedAt: pr.updatedAt,
       };
     }
   );
 
-  // Combine and sort by date
-  return [...feedstockEntries, ...productionRunEntries].slice(0, 10);
+  // Combine and sort by updatedAt (most recent first)
+  return [...feedstockEntries, ...productionRunEntries]
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+// ============================================
+// Completed Entries
+// ============================================
+
+export type CompletedEntry = {
+  id: string;
+  type: "feedstock" | "production_run";
+  name: string;
+  date: string;
+  description?: string;
+  weight?: string;
+  completedAt: Date;
+};
+
+export async function getCompletedEntries(): Promise<CompletedEntry[]> {
+  // Get feedstocks with complete status
+  const completedFeedstocks = await db.query.feedstocks.findMany({
+    where: eq(feedstocks.status, "complete"),
+    with: {
+      feedstockType: true,
+    },
+    orderBy: desc(feedstocks.updatedAt),
+    limit: 20,
+  });
+
+  // Get production runs with complete status
+  const completedProductionRuns = await db.query.productionRuns.findMany({
+    where: eq(productionRuns.status, "complete"),
+    orderBy: desc(productionRuns.updatedAt),
+    limit: 20,
+  });
+
+  // Transform feedstocks
+  const feedstockEntries: CompletedEntry[] = completedFeedstocks.map((f) => ({
+    id: f.id,
+    type: "feedstock" as const,
+    name: f.feedstockType?.name || "Unknown Feedstock",
+    date: formatDate(f.date),
+    description: f.feedstockType?.name,
+    weight: f.weightKg ? `${f.weightKg.toLocaleString()} kg` : undefined,
+    completedAt: f.updatedAt,
+  }));
+
+  // Transform production runs
+  const productionRunEntries: CompletedEntry[] = completedProductionRuns.map(
+    (pr) => ({
+      id: pr.id,
+      type: "production_run" as const,
+      name: pr.feedstockMix || "Production Run",
+      date: formatDate(pr.date),
+      description: pr.feedstockMix ?? undefined,
+      weight: pr.biocharAmountKg
+        ? `${pr.biocharAmountKg.toLocaleString()} kg biochar`
+        : undefined,
+      completedAt: pr.updatedAt,
+    })
+  );
+
+  // Combine and sort by completedAt (most recent first)
+  return [...feedstockEntries, ...productionRunEntries]
+    .sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
 }
 
 // ============================================

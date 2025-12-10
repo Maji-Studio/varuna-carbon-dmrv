@@ -23,12 +23,16 @@ interface FormFieldProps {
   children: React.ReactNode;
   className?: string;
   error?: string;
+  required?: boolean;
 }
 
-export function FormField({ label, children, className, error }: FormFieldProps) {
+export function FormField({ label, children, className, error, required }: FormFieldProps) {
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <Label className="text-sm font-medium text-foreground">{label}</Label>
+      <Label className="text-sm font-medium text-foreground">
+        {label}
+        {required && <span className="text-destructive ml-0.5">*</span>}
+      </Label>
       {children}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
@@ -44,9 +48,10 @@ interface TextFieldProps {
   placeholder?: string;
   type?: "text" | "number" | "email";
   className?: string;
+  required?: boolean;
 }
 
-export function TextField({ label, placeholder, type = "text", className }: TextFieldProps) {
+export function TextField({ label, placeholder, type = "text", className, required }: TextFieldProps) {
   const field = useFieldContext<string | number>();
 
   return (
@@ -54,6 +59,7 @@ export function TextField({ label, placeholder, type = "text", className }: Text
       label={label}
       className={className}
       error={field.state.meta.errors?.[0]?.message}
+      required={required}
     >
       <Input
         type={type}
@@ -81,9 +87,10 @@ interface NumberFieldProps {
   placeholder?: string;
   unit?: string;
   className?: string;
+  required?: boolean;
 }
 
-export function NumberField({ label, placeholder, unit, className }: NumberFieldProps) {
+export function NumberField({ label, placeholder, unit, className, required }: NumberFieldProps) {
   const field = useFieldContext<number | undefined>();
 
   const displayLabel = unit ? `${label} (${unit})` : label;
@@ -93,6 +100,7 @@ export function NumberField({ label, placeholder, unit, className }: NumberField
       label={displayLabel}
       className={className}
       error={field.state.meta.errors?.[0]?.message}
+      required={required}
     >
       <Input
         type="number"
@@ -124,9 +132,10 @@ interface SelectFieldProps {
   placeholder?: string;
   options: SelectOption[];
   className?: string;
+  required?: boolean;
 }
 
-export function SelectField({ label, placeholder, options, className }: SelectFieldProps) {
+export function SelectField({ label, placeholder, options, className, required }: SelectFieldProps) {
   const field = useFieldContext<string | undefined>();
 
   return (
@@ -134,6 +143,7 @@ export function SelectField({ label, placeholder, options, className }: SelectFi
       label={label}
       className={className}
       error={field.state.meta.errors?.[0]?.message}
+      required={required}
     >
       <Select
         value={field.state.value ?? ""}
@@ -165,9 +175,10 @@ interface TextareaFieldProps {
   label: string;
   placeholder?: string;
   className?: string;
+  required?: boolean;
 }
 
-export function TextareaField({ label, placeholder, className }: TextareaFieldProps) {
+export function TextareaField({ label, placeholder, className, required }: TextareaFieldProps) {
   const field = useFieldContext<string | undefined>();
 
   return (
@@ -175,6 +186,7 @@ export function TextareaField({ label, placeholder, className }: TextareaFieldPr
       label={label}
       className={className}
       error={field.state.meta.errors?.[0]?.message}
+      required={required}
     >
       <Textarea
         placeholder={placeholder}
