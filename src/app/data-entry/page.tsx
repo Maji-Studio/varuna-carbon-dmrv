@@ -1,8 +1,11 @@
-import { getIncompleteEntries } from "./actions";
-import { DataEntryCard, IncompleteEntriesSection } from "@/components/data-entry";
+import { getIncompleteEntries, getCompletedEntries } from "./actions";
+import { DataEntryCard, DataEntryTabs } from "@/components/data-entry";
 
 export default async function DataEntryPage() {
-  const incompleteEntries = await getIncompleteEntries();
+  const [incompleteEntries, completedEntries] = await Promise.all([
+    getIncompleteEntries(),
+    getCompletedEntries(),
+  ]);
 
   return (
     <div className="min-h-screen max-w-2xl mx-auto bg-neutral-50">
@@ -15,8 +18,11 @@ export default async function DataEntryPage() {
 
         {/* Data Entry Hub */}
         <div className="flex flex-col gap-6">
-          {/* Incomplete Data Entries */}
-          <IncompleteEntriesSection entries={incompleteEntries} />
+          {/* Tabbed Entries */}
+          <DataEntryTabs
+            incompleteEntries={incompleteEntries}
+            completedEntries={completedEntries}
+          />
 
           {/* Entry Point Cards Grid */}
           <div className="flex flex-col gap-2">

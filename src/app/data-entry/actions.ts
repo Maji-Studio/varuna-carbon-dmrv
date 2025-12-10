@@ -226,6 +226,114 @@ export async function getIncompleteEntries(): Promise<IncompleteEntry[]> {
 }
 
 // ============================================
+// Completed Entries
+// ============================================
+
+export async function getCompletedEntries(): Promise<IncompleteEntry[]> {
+  // Get feedstock deliveries with complete status
+  const completeFeedstockDeliveries =
+    await db.query.feedstockDeliveries.findMany({
+      where: eq(feedstockDeliveries.status, "complete"),
+      with: {
+        supplier: true,
+      },
+      orderBy: desc(feedstockDeliveries.updatedAt),
+      limit: 10,
+    });
+
+  // Get feedstocks with complete status
+  const completeFeedstocks = await db.query.feedstocks.findMany({
+    where: eq(feedstocks.status, "complete"),
+    with: {
+      feedstockType: true,
+    },
+    orderBy: desc(feedstocks.updatedAt),
+    limit: 10,
+  });
+
+  // Get production runs with complete status
+  const completeProductionRuns = await db.query.productionRuns.findMany({
+    where: eq(productionRuns.status, "complete"),
+    orderBy: desc(productionRuns.updatedAt),
+    limit: 10,
+  });
+
+  // Get biochar products with ready status (complete)
+  const completeBiocharProducts = await db.query.biocharProducts.findMany({
+    where: eq(biocharProducts.status, "ready"),
+    with: {
+      formulation: true,
+    },
+    orderBy: desc(biocharProducts.updatedAt),
+    limit: 10,
+  });
+
+  // Transform feedstock deliveries
+  const feedstockDeliveryEntries: IncompleteEntry[] =
+    completeFeedstockDeliveries.map((fd) => ({
+      id: fd.id,
+      type: "feedstock_delivery" as const,
+      name: fd.supplier?.name || "Feedstock Delivery",
+      date: formatDate(fd.deliveryDate),
+      description: fd.code,
+      missingCount: 0,
+      updatedAt: fd.updatedAt,
+    }));
+
+  // Transform feedstocks
+  const feedstockEntries: IncompleteEntry[] = completeFeedstocks.map((f) => ({
+    id: f.id,
+    type: "feedstock" as const,
+    name: f.feedstockType?.name || "Unknown Feedstock",
+    date: formatDate(f.date),
+    description: f.feedstockType?.name,
+    weight: f.weightKg ? `${f.weightKg.toLocaleString()} kg` : undefined,
+    missingCount: 0,
+    updatedAt: f.updatedAt,
+  }));
+
+  // Transform production runs
+  const productionRunEntries: IncompleteEntry[] = completeProductionRuns.map(
+    (pr) => ({
+      id: pr.id,
+      type: "production_run" as const,
+      name: pr.feedstockMix || "Production Run",
+      date: formatDate(pr.date),
+      description: pr.feedstockMix ?? undefined,
+      weight: pr.feedstockAmountKg
+        ? `${pr.feedstockAmountKg.toLocaleString()} kg`
+        : undefined,
+      missingCount: 0,
+      updatedAt: pr.updatedAt,
+    })
+  );
+
+  // Transform biochar products
+  const biocharProductEntries: IncompleteEntry[] = completeBiocharProducts.map(
+    (bp) => ({
+      id: bp.id,
+      type: "biochar_product" as const,
+      name: bp.formulation?.name || bp.code,
+      date: formatDate(bp.productionDate),
+      description: bp.code,
+      weight: bp.totalWeightKg
+        ? `${bp.totalWeightKg.toLocaleString()} kg`
+        : undefined,
+      missingCount: 0,
+      updatedAt: bp.updatedAt,
+    })
+  );
+
+  // Combine and sort by updatedAt (most recent first)
+  return [
+    ...feedstockDeliveryEntries,
+    ...feedstockEntries,
+    ...productionRunEntries,
+    ...biocharProductEntries,
+  ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+// ============================================
 // Form Options (for dropdowns)
 // ============================================
 

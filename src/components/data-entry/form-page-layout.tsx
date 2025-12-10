@@ -47,13 +47,13 @@ export function FormPageLayout({
   const router = useRouter();
 
   const getSubmitLabel = () => {
-    if (isComplete) return "Finish Data Entry";
-    if (hasDraft) return "Update";
-    return "Save";
+    if (isComplete) return "Complete Entry";
+    if (hasDraft) return "Update Draft";
+    return "Save Draft";
   };
 
   const getSubmittingLabel = () => {
-    if (isComplete) return "Finishing...";
+    if (isComplete) return "Completing...";
     if (hasDraft) return "Updating...";
     return "Saving...";
   };
