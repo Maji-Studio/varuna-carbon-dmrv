@@ -5,6 +5,12 @@ import { incidentReports, productionRuns } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+// Convert empty string to null for optional UUID fields
+function toUuidOrNull(value: string | undefined | null): string | null {
+  if (!value || value.trim() === "") return null;
+  return value;
+}
+
 interface CreateIncidentValues {
   productionRunId: string;
   incidentTime: Date;
@@ -14,11 +20,17 @@ interface CreateIncidentValues {
 }
 
 export async function createIncident(values: CreateIncidentValues) {
+  // Validate required productionRunId
+  const productionRunId = toUuidOrNull(values.productionRunId);
+  if (!productionRunId) {
+    throw new Error("Production Run is required");
+  }
+
   const result = await db.insert(incidentReports).values({
-    productionRunId: values.productionRunId,
+    productionRunId,
     incidentTime: values.incidentTime,
-    reactorId: values.reactorId || null,
-    operatorId: values.operatorId || null,
+    reactorId: toUuidOrNull(values.reactorId),
+    operatorId: toUuidOrNull(values.operatorId),
     notes: values.notes || null,
   }).returning({ id: incidentReports.id });
 

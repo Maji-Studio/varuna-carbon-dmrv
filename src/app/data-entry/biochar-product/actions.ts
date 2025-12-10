@@ -6,6 +6,12 @@ import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { type BiocharProductFormValues } from "@/lib/validations/data-entry";
 
+// Convert empty string to null for optional UUID fields
+function toUuidOrNull(value: string | undefined | null): string | null {
+  if (!value || value.trim() === "") return null;
+  return value;
+}
+
 // Generate a unique code like "BP-2025-043"
 async function generateBiocharProductCode(): Promise<string> {
   const year = new Date().getFullYear();
@@ -21,17 +27,23 @@ async function generateBiocharProductCode(): Promise<string> {
 }
 
 export async function createBiocharProduct(values: Omit<BiocharProductFormValues, "photos">) {
+  // Validate required facilityId
+  const facilityId = toUuidOrNull(values.facilityId);
+  if (!facilityId) {
+    throw new Error("Facility is required");
+  }
+
   const code = await generateBiocharProductCode();
 
   const result = await db.insert(biocharProducts).values({
     code,
-    facilityId: values.facilityId,
+    facilityId,
     productionDate: values.productionDate ?? null,
-    formulationId: values.formulationId || null,
+    formulationId: toUuidOrNull(values.formulationId),
     totalWeightKg: values.totalWeightKg ?? null,
     totalVolumeLiters: values.totalVolumeLiters ?? null,
-    storageLocationId: values.storageLocationId || null,
-    biocharSourceStorageId: values.biocharSourceStorageId || null,
+    storageLocationId: toUuidOrNull(values.storageLocationId),
+    biocharSourceStorageId: toUuidOrNull(values.biocharSourceStorageId),
     biocharAmountKg: values.biocharAmountKg ?? null,
     biocharPerM3Kg: values.biocharPerM3Kg ?? null,
     compostWeightKg: values.compostWeightKg ?? null,

@@ -6,6 +6,12 @@ import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { type FeedstockFormValues } from "@/lib/validations/data-entry";
 
+// Convert empty string to null for optional UUID fields
+function toUuidOrNull(value: string | undefined | null): string | null {
+  if (!value || value.trim() === "") return null;
+  return value;
+}
+
 // Generate a unique code like "FS-2025-001"
 async function generateFeedstockCode(): Promise<string> {
   const year = new Date().getFullYear();
@@ -22,6 +28,12 @@ async function generateFeedstockCode(): Promise<string> {
 }
 
 export async function createFeedstock(values: Omit<FeedstockFormValues, "photos">) {
+  // Validate required facilityId
+  const facilityId = toUuidOrNull(values.facilityId);
+  if (!facilityId) {
+    throw new Error("Facility is required");
+  }
+
   const code = await generateFeedstockCode();
 
   // Determine status based on required fields
@@ -34,17 +46,18 @@ export async function createFeedstock(values: Omit<FeedstockFormValues, "photos"
 
   const result = await db.insert(feedstocks).values({
     code,
-    facilityId: values.facilityId,
+    facilityId,
     date: values.collectionDate?.toISOString().split("T")[0] ?? new Date().toISOString().split("T")[0],
     collectionDate: values.collectionDate ?? null,
-    feedstockTypeId: values.feedstockTypeId || null,
-    supplierId: values.supplierId || null,
-    driverId: values.driverId || null,
+    feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
+    supplierId: toUuidOrNull(values.supplierId),
+    driverId: toUuidOrNull(values.driverId),
     vehicleType: values.vehicleType || null,
     fuelConsumedLiters: values.fuelConsumedLiters ?? null,
     weightKg: values.weightKg ?? null,
     moisturePercent: values.moisturePercent ?? null,
-    storageLocationId: values.storageLocationId || null,
+    storageLocationId: toUuidOrNull(values.storageLocationId),
+    notes: values.notes || null,
     status: hasRequiredFields ? "complete" : "missing_data",
   }).returning({ id: feedstocks.id });
 
@@ -55,6 +68,12 @@ export async function createFeedstock(values: Omit<FeedstockFormValues, "photos"
 }
 
 export async function updateFeedstock(id: string, values: Omit<FeedstockFormValues, "photos">) {
+  // Validate required facilityId
+  const facilityId = toUuidOrNull(values.facilityId);
+  if (!facilityId) {
+    throw new Error("Facility is required");
+  }
+
   // Determine status based on required fields
   const hasRequiredFields =
     values.feedstockTypeId &&
@@ -65,17 +84,18 @@ export async function updateFeedstock(id: string, values: Omit<FeedstockFormValu
 
   await db.update(feedstocks)
     .set({
-      facilityId: values.facilityId,
+      facilityId,
       date: values.collectionDate?.toISOString().split("T")[0] ?? new Date().toISOString().split("T")[0],
       collectionDate: values.collectionDate ?? null,
-      feedstockTypeId: values.feedstockTypeId || null,
-      supplierId: values.supplierId || null,
-      driverId: values.driverId || null,
+      feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
+      supplierId: toUuidOrNull(values.supplierId),
+      driverId: toUuidOrNull(values.driverId),
       vehicleType: values.vehicleType || null,
       fuelConsumedLiters: values.fuelConsumedLiters ?? null,
       weightKg: values.weightKg ?? null,
       moisturePercent: values.moisturePercent ?? null,
-      storageLocationId: values.storageLocationId || null,
+      storageLocationId: toUuidOrNull(values.storageLocationId),
+      notes: values.notes || null,
       status: hasRequiredFields ? "complete" : "missing_data",
       updatedAt: new Date(),
     })

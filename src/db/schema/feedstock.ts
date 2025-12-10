@@ -52,6 +52,9 @@ export const feedstocks = pgTable('feedstocks', {
     () => storageLocations.id
   ),
 
+  // --- Documentation ---
+  notes: text('notes'),
+
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -4,19 +4,9 @@ Inconsistencies discovered between Figma mobile data entry forms and the databas
 
 ## Priority 1: Required Schema Changes
 
-### 1. Add `notes` field to `feedstocks` table
+### 1. ~~Add `notes` field to `feedstocks` table~~ ✅ DONE
 
-**Issue**: Figma form has Notes textarea, but `feedstocks` table has no `notes` column.
-
-```sql
-ALTER TABLE feedstocks ADD COLUMN notes TEXT;
-```
-
-Or in Drizzle schema (`src/db/schema/feedstock.ts`):
-
-```typescript
-notes: text('notes'),
-```
+**Resolved**: Added `notes` field to feedstocks schema and actions.
 
 ### 2. Create `documents` table for photo/video uploads
 
@@ -46,35 +36,19 @@ export const documents = pgTable("documents", {
 
 ## Priority 2: Schema Design Decisions Needed
 
-### 3. Production Run - Multiple Feedstock Sources
+### 3. ~~Production Run - Multiple Feedstock Sources~~ ✅ DECIDED
 
-**Issue**: Figma shows "Add Feedstock Source" button allowing multiple feedstock inputs per production run. Current schema only has single `feedstockStorageLocationId` and `feedstockAmountKg`.
+**Decision**: Use JSON in `feedstockMix` field (simpler approach).
 
-**Options**:
+**Implementation**: Production run actions now store feedstock inputs as JSON:
+```typescript
+feedstockMix: JSON.stringify([
+  { storageLocationId: "uuid", amountKg: 150 },
+  ...
+]);
+```
 
-1. **New join table** (recommended for proper data modeling):
-
-   ```typescript
-   export const productionRunFeedstockInputs = pgTable("production_run_feedstock_inputs", {
-     id: uuid("id").primaryKey().defaultRandom(),
-     productionRunId: uuid("production_run_id")
-       .notNull()
-       .references(() => productionRuns.id),
-     storageLocationId: uuid("storage_location_id")
-       .notNull()
-       .references(() => storageLocations.id),
-     amountKg: real("amount_kg").notNull(),
-     createdAt: timestamp("created_at").defaultNow().notNull(),
-   });
-   ```
-
-2. **Use existing `feedstockMix` text field as JSON**:
-   ```typescript
-   // Store as JSON array
-   feedstockMix: '[{"storageLocationId": "uuid", "amountKg": 150}, ...]';
-   ```
-
-**Current workaround**: Form uses local state array, but only sends first item or aggregated data on submit.
+The first feedstock source is also stored in `feedstockStorageLocationId` for backward compatibility.
 
 ---
 
@@ -112,20 +86,25 @@ export const documents = pgTable("documents", {
 - [x] Auto-generated codes (FS-2025-001, PR-2025-001, BP-2025-001)
 - [x] Edit pages for incomplete feedstock and production run entries
 - [x] TypeScript errors resolved
+- [x] **Deleted duplicate sheet-based forms** (`src/components/forms/data-entry/`) - kept only page-based forms
+- [x] **Added `notes` field** to feedstocks schema and actions
+- [x] **Fixed UUID validation** in all form actions (empty strings → null)
+- [x] **Multi-feedstock JSON storage** in `feedstockMix` field
 
 ### Workarounds Applied
 
 | Issue | Workaround |
 |-------|------------|
 | Sampling/Incident missing `facilityId` | Form uses Production Run dropdown instead; facility derived from PR |
-| Feedstock missing `notes` | Field rendered but not persisted to DB |
-| Multi-feedstock inputs | First source stored in `feedstockStorageLocationId`, total in `feedstockAmountKg`, description in `feedstockMix` |
+| ~~Feedstock missing `notes`~~ | ✅ Fixed - notes field added to schema |
+| Multi-feedstock inputs | JSON stored in `feedstockMix`, first source in `feedstockStorageLocationId` |
+| Photo uploads | UI shown but not persisted (documents table pending) |
 
 ---
 
 ## File References
 
-### Page-Based Forms (New)
+### Page-Based Forms (Primary)
 - Hub: `src/app/data-entry/page.tsx`
 - Feedstock: `src/app/data-entry/feedstock/`
 - Production Run: `src/app/data-entry/production-run/`
@@ -133,8 +112,8 @@ export const documents = pgTable("documents", {
 - Incident: `src/app/data-entry/incident/`
 - Biochar Product: `src/app/data-entry/biochar-product/`
 
-### Sheet-Based Forms (Legacy)
-- Forms: `src/components/forms/data-entry/`
+### ~~Sheet-Based Forms (Legacy)~~ DELETED
+- ~~Forms: `src/components/forms/data-entry/`~~ - Removed to reduce duplication
 
 ### Database Schemas
 - `src/db/schema/feedstock.ts`
@@ -148,16 +127,16 @@ export const documents = pgTable("documents", {
 
 ## Historical Notes
 
-### Previous TanStack Form Issues (Resolved)
+### TanStack Form Pattern
 
-The legacy sheet-based forms (`src/components/forms/data-entry/*.tsx`) had issues with TanStack Form integration. The new page-based forms in `src/app/data-entry/` correctly use:
+The page-based forms in `src/app/data-entry/` use:
 
 - `useAppForm` hook from `form-context.tsx`
 - `form.AppField` component for field rendering
 - `form.state.isSubmitting` for submit state
 - Reusable field components (`SelectField`, `NumberField`, `DatePickerField`, etc.)
 
-**Pattern used in new forms:**
+**Pattern:**
 ```tsx
 const form = useAppForm({
   defaultValues: { ... },
@@ -167,7 +146,6 @@ const form = useAppForm({
   },
 });
 
-// Using AppField for proper context injection
 <form.AppField name="facilityId">
   {(field) => (
     <field.SelectField
@@ -178,18 +156,14 @@ const form = useAppForm({
 </form.AppField>
 ```
 
-### Remaining Validation TODO
+### Form Simplification (Dec 10, 2025)
 
-The page-based forms do not yet connect Zod validation schemas at the form level. Currently only field-level validators are used. To add form-level Zod validation:
+- **Deleted ~1,800 lines** of duplicate sheet-based forms
+- **Added UUID validation** helper (`toUuidOrNull`) to all actions
+- **Facility/Production Run required** - forms now require a primary entity before saving
+- **Multi-feedstock as JSON** - stored in `feedstockMix` field
 
-```tsx
-import { zodValidator } from "@tanstack/zod-form-adapter";
+### Remaining TODO
 
-const form = useAppForm({
-  validatorAdapter: zodValidator(),
-  validators: {
-    onChange: feedstockFormSchema,
-  },
-  // ...
-});
-```
+- Form-level Zod validation not yet connected (only field-level validators used)
+- Photo uploads not persisted (documents table pending)

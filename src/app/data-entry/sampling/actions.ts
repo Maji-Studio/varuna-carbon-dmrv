@@ -5,6 +5,12 @@ import { samples, productionRuns } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
+// Convert empty string to null for optional UUID fields
+function toUuidOrNull(value: string | undefined | null): string | null {
+  if (!value || value.trim() === "") return null;
+  return value;
+}
+
 interface CreateSampleValues {
   productionRunId: string;
   samplingTime: Date;
@@ -20,11 +26,17 @@ interface CreateSampleValues {
 }
 
 export async function createSample(values: CreateSampleValues) {
+  // Validate required productionRunId
+  const productionRunId = toUuidOrNull(values.productionRunId);
+  if (!productionRunId) {
+    throw new Error("Production Run is required");
+  }
+
   const result = await db.insert(samples).values({
-    productionRunId: values.productionRunId,
+    productionRunId,
     samplingTime: values.samplingTime,
-    reactorId: values.reactorId || null,
-    operatorId: values.operatorId || null,
+    reactorId: toUuidOrNull(values.reactorId),
+    operatorId: toUuidOrNull(values.operatorId),
     weightG: values.weightG ?? null,
     volumeMl: values.volumeMl ?? null,
     temperatureC: values.temperatureC ?? null,
