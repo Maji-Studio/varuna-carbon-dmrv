@@ -5,6 +5,7 @@ import { feedstockDeliveries } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { type FeedstockDeliveryFormValues } from "@/lib/validations/data-entry";
+import { isFeedstockDeliveryComplete } from "@/lib/validations/completion";
 import { toUuidOrNull } from "@/lib/form-utils";
 import { type ActionResult } from "@/lib/types/actions";
 
@@ -30,27 +31,30 @@ export async function createFeedstockDelivery(
   }
 
   const code = await generateFeedstockDeliveryCode();
+  const status = isFeedstockDeliveryComplete(values) ? "complete" : "missing_data";
 
-  // Determine status based on required fields
-  const hasRequiredFields = values.supplierId && values.deliveryDate;
+  try {
+    const result = await db.insert(feedstockDeliveries).values({
+      code,
+      facilityId,
+      deliveryDate: values.deliveryDate ?? null,
+      supplierId: toUuidOrNull(values.supplierId),
+      driverId: toUuidOrNull(values.driverId),
+      vehicleType: values.vehicleType || null,
+      fuelType: values.fuelType || null,
+      fuelConsumedLiters: values.fuelConsumedLiters ?? null,
+      notes: values.notes || null,
+      status,
+    }).returning({ id: feedstockDeliveries.id });
 
-  const result = await db.insert(feedstockDeliveries).values({
-    code,
-    facilityId,
-    deliveryDate: values.deliveryDate ?? null,
-    supplierId: toUuidOrNull(values.supplierId),
-    driverId: toUuidOrNull(values.driverId),
-    vehicleType: values.vehicleType || null,
-    fuelType: values.fuelType || null,
-    fuelConsumedLiters: values.fuelConsumedLiters ?? null,
-    notes: values.notes || null,
-    status: hasRequiredFields ? "complete" : "missing_data",
-  }).returning({ id: feedstockDeliveries.id });
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/feedstock-delivery");
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/feedstock-delivery");
-
-  return { success: true as const, data: { id: result[0].id } };
+    return { success: true as const, data: { id: result[0].id } };
+  } catch (error) {
+    console.error("Failed to create feedstock delivery:", error);
+    return { success: false, error: "Failed to create feedstock delivery. Please try again." };
+  }
 }
 
 export async function updateFeedstockDelivery(
@@ -62,29 +66,33 @@ export async function updateFeedstockDelivery(
     return { success: false, error: "Facility is required" };
   }
 
-  // Determine status based on required fields
-  const hasRequiredFields = values.supplierId && values.deliveryDate;
+  const status = isFeedstockDeliveryComplete(values) ? "complete" : "missing_data";
 
-  await db
-    .update(feedstockDeliveries)
-    .set({
-      facilityId,
-      deliveryDate: values.deliveryDate ?? null,
-      supplierId: toUuidOrNull(values.supplierId),
-      driverId: toUuidOrNull(values.driverId),
-      vehicleType: values.vehicleType || null,
-      fuelType: values.fuelType || null,
-      fuelConsumedLiters: values.fuelConsumedLiters ?? null,
-      notes: values.notes || null,
-      status: hasRequiredFields ? "complete" : "missing_data",
-      updatedAt: new Date(),
-    })
-    .where(eq(feedstockDeliveries.id, id));
+  try {
+    await db
+      .update(feedstockDeliveries)
+      .set({
+        facilityId,
+        deliveryDate: values.deliveryDate ?? null,
+        supplierId: toUuidOrNull(values.supplierId),
+        driverId: toUuidOrNull(values.driverId),
+        vehicleType: values.vehicleType || null,
+        fuelType: values.fuelType || null,
+        fuelConsumedLiters: values.fuelConsumedLiters ?? null,
+        notes: values.notes || null,
+        status,
+        updatedAt: new Date(),
+      })
+      .where(eq(feedstockDeliveries.id, id));
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/feedstock-delivery");
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/feedstock-delivery");
 
-  return { success: true as const, data: { id } };
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("Failed to update feedstock delivery:", error);
+    return { success: false, error: "Failed to update feedstock delivery. Please try again." };
+  }
 }
 
 export async function getFeedstockDelivery(id: string) {
@@ -103,12 +111,17 @@ export async function getFeedstockDelivery(id: string) {
 export async function deleteFeedstockDelivery(
   id: string
 ): Promise<ActionResult<void>> {
-  await db
-    .delete(feedstockDeliveries)
-    .where(eq(feedstockDeliveries.id, id));
+  try {
+    await db
+      .delete(feedstockDeliveries)
+      .where(eq(feedstockDeliveries.id, id));
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/feedstock-delivery");
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/feedstock-delivery");
 
-  return { success: true, data: undefined };
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Failed to delete feedstock delivery:", error);
+    return { success: false, error: "Failed to delete feedstock delivery. Please try again." };
+  }
 }

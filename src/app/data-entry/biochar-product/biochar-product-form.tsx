@@ -61,7 +61,7 @@ export function BiocharProductForm({
       biocharPerM3Kg: initialData?.biocharPerM3Kg ?? undefined,
       compostWeightKg: initialData?.compostWeightKg ?? undefined,
       compostPerM3Kg: initialData?.compostPerM3Kg ?? undefined,
-      notes: "",
+      notes: initialData?.notes ?? "",
     },
     onSubmit: async ({ value }) => {
       const isComplete = isBiocharProductComplete(value);

@@ -49,7 +49,7 @@ export function FormPageLayout({
   const getSubmitLabel = () => {
     if (isComplete) return "Finish Data Entry";
     if (hasDraft) return "Update";
-    return "Save Draft";
+    return "Save";
   };
 
   const getSubmittingLabel = () => {
@@ -99,16 +99,12 @@ export function FormPageLayout({
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete
-                        this entry from the database.
+                        This action cannot be undone. This will permanently delete this entry from the database.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={onDelete}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
+                      <AlertDialogAction onClick={onDelete} className="bg-red-600 hover:bg-red-700">
                         {isDeleting ? "Deleting..." : "Delete"}
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -123,12 +119,7 @@ export function FormPageLayout({
         {/* Footer */}
         <footer className="sticky bottom-0 border-t bg-white px-4 py-4">
           <div className="flex gap-2">
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={onSubmit}
-              disabled={isSubmitting || isDeleting}
-            >
+            <Button type="button" className="flex-1" onClick={onSubmit} disabled={isSubmitting || isDeleting}>
               {isSubmitting ? getSubmittingLabel() : getSubmitLabel()}
             </Button>
             <Button

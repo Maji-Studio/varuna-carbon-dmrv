@@ -5,6 +5,7 @@ import { feedstocks } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { type FeedstockFormValues } from "@/lib/validations/data-entry";
+import { isFeedstockComplete } from "@/lib/validations/completion";
 import { toUuidOrNull, toDateString } from "@/lib/form-utils";
 import { type ActionResult } from "@/lib/types/actions";
 
@@ -30,49 +31,11 @@ export async function createFeedstock(
   }
 
   const code = await generateFeedstockCode();
+  const status = isFeedstockComplete(values) ? "complete" : "missing_data";
 
-  // Determine status based on required fields
-  const hasRequiredFields =
-    values.feedstockTypeId &&
-    values.weightKg &&
-    values.moisturePercent &&
-    values.storageLocationId;
-
-  const result = await db.insert(feedstocks).values({
-    code,
-    facilityId,
-    date: toDateString(values.collectionDate),
-    collectionDate: values.collectionDate ?? null,
-    feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
-    weightKg: values.weightKg ?? null,
-    moisturePercent: values.moisturePercent ?? null,
-    storageLocationId: toUuidOrNull(values.storageLocationId),
-    notes: values.notes || null,
-    status: hasRequiredFields ? "complete" : "missing_data",
-  }).returning({ id: feedstocks.id });
-
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/feedstock");
-
-  return { success: true as const, data: { id: result[0].id } };
-}
-
-export async function updateFeedstock(id: string, values: Omit<FeedstockFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
-  // Validate required facilityId
-  const facilityId = toUuidOrNull(values.facilityId);
-  if (!facilityId) {
-    return { success: false, error: "Facility is required" };
-  }
-
-  // Determine status based on required fields
-  const hasRequiredFields =
-    values.feedstockTypeId &&
-    values.weightKg &&
-    values.moisturePercent &&
-    values.storageLocationId;
-
-  await db.update(feedstocks)
-    .set({
+  try {
+    const result = await db.insert(feedstocks).values({
+      code,
       facilityId,
       date: toDateString(values.collectionDate),
       collectionDate: values.collectionDate ?? null,
@@ -81,15 +44,51 @@ export async function updateFeedstock(id: string, values: Omit<FeedstockFormValu
       moisturePercent: values.moisturePercent ?? null,
       storageLocationId: toUuidOrNull(values.storageLocationId),
       notes: values.notes || null,
-      status: hasRequiredFields ? "complete" : "missing_data",
-      updatedAt: new Date(),
-    })
-    .where(eq(feedstocks.id, id));
+      status,
+    }).returning({ id: feedstocks.id });
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/feedstock");
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/feedstock");
 
-  return { success: true as const, data: { id } };
+    return { success: true as const, data: { id: result[0].id } };
+  } catch (error) {
+    console.error("Failed to create feedstock:", error);
+    return { success: false, error: "Failed to create feedstock. Please try again." };
+  }
+}
+
+export async function updateFeedstock(id: string, values: Omit<FeedstockFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
+  const facilityId = toUuidOrNull(values.facilityId);
+  if (!facilityId) {
+    return { success: false, error: "Facility is required" };
+  }
+
+  const status = isFeedstockComplete(values) ? "complete" : "missing_data";
+
+  try {
+    await db.update(feedstocks)
+      .set({
+        facilityId,
+        date: toDateString(values.collectionDate),
+        collectionDate: values.collectionDate ?? null,
+        feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
+        weightKg: values.weightKg ?? null,
+        moisturePercent: values.moisturePercent ?? null,
+        storageLocationId: toUuidOrNull(values.storageLocationId),
+        notes: values.notes || null,
+        status,
+        updatedAt: new Date(),
+      })
+      .where(eq(feedstocks.id, id));
+
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/feedstock");
+
+    return { success: true as const, data: { id } };
+  } catch (error) {
+    console.error("Failed to update feedstock:", error);
+    return { success: false, error: "Failed to update feedstock. Please try again." };
+  }
 }
 
 export async function getFeedstock(id: string) {
@@ -108,10 +107,15 @@ export async function getFeedstock(id: string) {
 }
 
 export async function deleteFeedstock(id: string): Promise<ActionResult<void>> {
-  await db.delete(feedstocks).where(eq(feedstocks.id, id));
+  try {
+    await db.delete(feedstocks).where(eq(feedstocks.id, id));
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/feedstock");
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/feedstock");
 
-  return { success: true, data: undefined };
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Failed to delete feedstock:", error);
+    return { success: false, error: "Failed to delete feedstock. Please try again." };
+  }
 }

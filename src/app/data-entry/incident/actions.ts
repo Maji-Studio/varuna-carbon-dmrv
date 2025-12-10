@@ -19,24 +19,28 @@ interface CreateIncidentValues {
 }
 
 export async function createIncident(values: CreateIncidentValues): Promise<ActionResult<{ id: string }>> {
-  // Validate required productionRunId
   const productionRunId = toUuidOrNull(values.productionRunId);
   if (!productionRunId) {
     return { success: false, error: "Production Run is required" };
   }
 
-  const result = await db.insert(incidentReports).values({
-    productionRunId,
-    incidentTime: values.incidentTime,
-    reactorId: toUuidOrNull(values.reactorId),
-    operatorId: toUuidOrNull(values.operatorId),
-    notes: values.notes || null,
-  }).returning({ id: incidentReports.id });
+  try {
+    const result = await db.insert(incidentReports).values({
+      productionRunId,
+      incidentTime: values.incidentTime,
+      reactorId: toUuidOrNull(values.reactorId),
+      operatorId: toUuidOrNull(values.operatorId),
+      notes: values.notes || null,
+    }).returning({ id: incidentReports.id });
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/incident");
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/incident");
 
-  return { success: true, data: { id: result[0].id } };
+    return { success: true, data: { id: result[0].id } };
+  } catch (error) {
+    console.error("Failed to create incident:", error);
+    return { success: false, error: "Failed to create incident. Please try again." };
+  }
 }
 
 export async function getIncident(id: string) {
@@ -57,12 +61,17 @@ export async function getIncident(id: string) {
 }
 
 export async function deleteIncident(id: string): Promise<ActionResult<void>> {
-  await db.delete(incidentReports).where(eq(incidentReports.id, id));
+  try {
+    await db.delete(incidentReports).where(eq(incidentReports.id, id));
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/incident");
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/incident");
 
-  return { success: true, data: undefined };
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Failed to delete incident:", error);
+    return { success: false, error: "Failed to delete incident. Please try again." };
+  }
 }
 
 // Re-export shared function for convenience

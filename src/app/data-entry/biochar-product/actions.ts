@@ -22,7 +22,6 @@ async function generateBiocharProductCode(): Promise<string> {
 }
 
 export async function createBiocharProduct(values: Omit<BiocharProductFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
-  // Validate required facilityId
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
     return { success: false, error: "Facility is required" };
@@ -30,25 +29,30 @@ export async function createBiocharProduct(values: Omit<BiocharProductFormValues
 
   const code = await generateBiocharProductCode();
 
-  const result = await db.insert(biocharProducts).values({
-    code,
-    facilityId,
-    productionDate: values.productionDate ?? null,
-    formulationId: toUuidOrNull(values.formulationId),
-    totalWeightKg: values.totalWeightKg ?? null,
-    totalVolumeLiters: values.totalVolumeLiters ?? null,
-    storageLocationId: toUuidOrNull(values.storageLocationId),
-    biocharSourceStorageId: toUuidOrNull(values.biocharSourceStorageId),
-    biocharAmountKg: values.biocharAmountKg ?? null,
-    biocharPerM3Kg: values.biocharPerM3Kg ?? null,
-    compostWeightKg: values.compostWeightKg ?? null,
-    compostPerM3Kg: values.compostPerM3Kg ?? null,
-  }).returning({ id: biocharProducts.id });
+  try {
+    const result = await db.insert(biocharProducts).values({
+      code,
+      facilityId,
+      productionDate: values.productionDate ?? null,
+      formulationId: toUuidOrNull(values.formulationId),
+      totalWeightKg: values.totalWeightKg ?? null,
+      totalVolumeLiters: values.totalVolumeLiters ?? null,
+      storageLocationId: toUuidOrNull(values.storageLocationId),
+      biocharSourceStorageId: toUuidOrNull(values.biocharSourceStorageId),
+      biocharAmountKg: values.biocharAmountKg ?? null,
+      biocharPerM3Kg: values.biocharPerM3Kg ?? null,
+      compostWeightKg: values.compostWeightKg ?? null,
+      compostPerM3Kg: values.compostPerM3Kg ?? null,
+    }).returning({ id: biocharProducts.id });
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/biochar-product");
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/biochar-product");
 
-  return { success: true, data: { id: result[0].id } };
+    return { success: true, data: { id: result[0].id } };
+  } catch (error) {
+    console.error("Failed to create biochar product:", error);
+    return { success: false, error: "Failed to create biochar product. Please try again." };
+  }
 }
 
 export async function getBiocharProduct(id: string) {
@@ -68,10 +72,15 @@ export async function getBiocharProduct(id: string) {
 export async function deleteBiocharProduct(
   id: string
 ): Promise<ActionResult<void>> {
-  await db.delete(biocharProducts).where(eq(biocharProducts.id, id));
+  try {
+    await db.delete(biocharProducts).where(eq(biocharProducts.id, id));
 
-  revalidatePath("/data-entry");
-  revalidatePath("/data-entry/biochar-product");
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/biochar-product");
 
-  return { success: true, data: undefined };
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("Failed to delete biochar product:", error);
+    return { success: false, error: "Failed to delete biochar product. Please try again." };
+  }
 }
