@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getFormOptions } from "../../actions";
 import { getProductionRun } from "../actions";
-import { ProductionRunEditPage } from "./production-run-edit-page";
+import { ProductionRunForm } from "../production-run-form";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -18,5 +18,11 @@ export default async function EditProductionRunPage({ params }: PageProps) {
     notFound();
   }
 
-  return <ProductionRunEditPage options={options} productionRun={productionRun} />;
+  return (
+    <ProductionRunForm
+      mode="edit"
+      options={options}
+      initialData={productionRun}
+    />
+  );
 }

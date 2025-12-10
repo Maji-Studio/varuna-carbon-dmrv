@@ -1,6 +1,6 @@
 import { getFormOptions } from "../actions";
 import { getBiocharProductOptions } from "./options";
-import { BiocharProductFormPage } from "./biochar-product-form-page";
+import { BiocharProductForm } from "./biochar-product-form";
 
 export default async function BiocharProductPage() {
   const [options, productOptions] = await Promise.all([
@@ -9,7 +9,8 @@ export default async function BiocharProductPage() {
   ]);
 
   return (
-    <BiocharProductFormPage
+    <BiocharProductForm
+      mode="create"
       options={options}
       formulations={productOptions.formulations}
     />

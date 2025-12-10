@@ -5,30 +5,21 @@ import { biocharProducts } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { type BiocharProductFormValues } from "@/lib/validations/data-entry";
+import { toUuidOrNull } from "@/lib/form-utils";
+import { type ActionResult } from "@/lib/types/actions";
 
-// Convert empty string to null for optional UUID fields
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
+export type { ActionResult };
 
-// Generate a unique code like "BP-2025-043"
 async function generateBiocharProductCode(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `BP-${year}-`;
-
-  const result = await db.select({ count: sql<number>`count(*)` })
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
     .from(biocharProducts)
-    .where(sql`code LIKE ${prefix + '%'}`);
-
+    .where(sql`code LIKE ${prefix + "%"}`);
   const count = result[0]?.count ?? 0;
-  const nextNumber = String(count + 1).padStart(3, '0');
-  return `${prefix}${nextNumber}`;
+  return `${prefix}${String(count + 1).padStart(3, "0")}`;
 }
-
-export type ActionResult<T = unknown> =
-  | { success: true; data: T }
-  | { success: false; error: string };
 
 export async function createBiocharProduct(values: Omit<BiocharProductFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
   // Validate required facilityId
@@ -72,4 +63,15 @@ export async function getBiocharProduct(id: string) {
   });
 
   return product;
+}
+
+export async function deleteBiocharProduct(
+  id: string
+): Promise<ActionResult<void>> {
+  await db.delete(biocharProducts).where(eq(biocharProducts.id, id));
+
+  revalidatePath("/data-entry");
+  revalidatePath("/data-entry/biochar-product");
+
+  return { success: true, data: undefined };
 }

@@ -5,34 +5,25 @@ import { feedstocks } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { type FeedstockFormValues } from "@/lib/validations/data-entry";
+import { toUuidOrNull, toDateString } from "@/lib/form-utils";
+import { type ActionResult } from "@/lib/types/actions";
 
-// Convert empty string to null for optional UUID fields
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
+export type { ActionResult };
 
-// Generate a unique code like "FS-2025-001"
 async function generateFeedstockCode(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `FS-${year}-`;
-
-  // Get the count of feedstocks this year to determine the next number
-  const result = await db.select({ count: sql<number>`count(*)` })
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
     .from(feedstocks)
-    .where(sql`code LIKE ${prefix + '%'}`);
-
+    .where(sql`code LIKE ${prefix + "%"}`);
   const count = result[0]?.count ?? 0;
-  const nextNumber = String(count + 1).padStart(3, '0');
-  return `${prefix}${nextNumber}`;
+  return `${prefix}${String(count + 1).padStart(3, "0")}`;
 }
 
-export type ActionResult<T = unknown> =
-  | { success: true; data: T }
-  | { success: false; error: string };
-
-export async function createFeedstock(values: Omit<FeedstockFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
-  // Validate required facilityId
+export async function createFeedstock(
+  values: Omit<FeedstockFormValues, "photos">
+): Promise<ActionResult<{ id: string }>> {
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
     return { success: false, error: "Facility is required" };
@@ -51,7 +42,7 @@ export async function createFeedstock(values: Omit<FeedstockFormValues, "photos"
   const result = await db.insert(feedstocks).values({
     code,
     facilityId,
-    date: values.collectionDate?.toISOString().split("T")[0] ?? new Date().toISOString().split("T")[0],
+    date: toDateString(values.collectionDate),
     collectionDate: values.collectionDate ?? null,
     feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
     supplierId: toUuidOrNull(values.supplierId),
@@ -89,7 +80,7 @@ export async function updateFeedstock(id: string, values: Omit<FeedstockFormValu
   await db.update(feedstocks)
     .set({
       facilityId,
-      date: values.collectionDate?.toISOString().split("T")[0] ?? new Date().toISOString().split("T")[0],
+      date: toDateString(values.collectionDate),
       collectionDate: values.collectionDate ?? null,
       feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
       supplierId: toUuidOrNull(values.supplierId),
@@ -124,4 +115,13 @@ export async function getFeedstock(id: string) {
   });
 
   return feedstock;
+}
+
+export async function deleteFeedstock(id: string): Promise<ActionResult<void>> {
+  await db.delete(feedstocks).where(eq(feedstocks.id, id));
+
+  revalidatePath("/data-entry");
+  revalidatePath("/data-entry/feedstock");
+
+  return { success: true, data: undefined };
 }

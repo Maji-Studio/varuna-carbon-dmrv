@@ -9,32 +9,9 @@ import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { updateFeedstock } from "../actions";
-import type { SelectOption } from "../../actions";
-
-interface FeedstockEditPageProps {
-  options: {
-    facilities: SelectOption[];
-    suppliers: SelectOption[];
-    drivers: SelectOption[];
-    feedstockTypes: SelectOption[];
-    storageLocations: SelectOption[];
-  };
-  feedstock: {
-    id: string;
-    facilityId: string;
-    date: string;
-    feedstockTypeId: string | null;
-    supplierId: string | null;
-    driverId: string | null;
-    vehicleType: string | null;
-    fuelConsumedLiters: number | null;
-    weightKg: number | null;
-    moisturePercent: number | null;
-    storageLocationId: string | null;
-    supplier?: { location: string | null } | null;
-  };
-}
+import { createFeedstock, updateFeedstock, deleteFeedstock } from "./actions";
+import { isFeedstockComplete } from "@/lib/validations/completion";
+import type { SelectOption } from "../actions";
 
 const VEHICLE_TYPES = [
   { value: "truck", label: "Truck" },
@@ -45,54 +22,114 @@ const VEHICLE_TYPES = [
   { value: "other", label: "Other" },
 ];
 
-export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps) {
+interface FeedstockData {
+  id: string;
+  facilityId: string;
+  date: string;
+  feedstockTypeId: string | null;
+  supplierId: string | null;
+  driverId: string | null;
+  vehicleType: string | null;
+  fuelConsumedLiters: number | null;
+  weightKg: number | null;
+  moisturePercent: number | null;
+  storageLocationId: string | null;
+  notes?: string | null;
+  supplier?: { location: string | null } | null;
+}
+
+interface FeedstockFormProps {
+  mode: "create" | "edit";
+  initialData?: FeedstockData;
+  options: {
+    facilities: SelectOption[];
+    suppliers: SelectOption[];
+    drivers: SelectOption[];
+    feedstockTypes: SelectOption[];
+    storageLocations: SelectOption[];
+  };
+}
+
+export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps) {
   const router = useRouter();
+  const isEdit = mode === "edit";
   const [photos, setPhotos] = React.useState<File[]>([]);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const form = useAppForm({
     defaultValues: {
-      facilityId: feedstock.facilityId,
-      collectionDate: feedstock.date ? new Date(feedstock.date) : new Date(),
-      supplierId: feedstock.supplierId ?? undefined,
-      driverId: feedstock.driverId ?? undefined,
-      vehicleType: feedstock.vehicleType ?? undefined,
-      fuelConsumedLiters: feedstock.fuelConsumedLiters ?? undefined,
-      feedstockTypeId: feedstock.feedstockTypeId ?? undefined,
-      weightKg: feedstock.weightKg ?? undefined,
-      moisturePercent: feedstock.moisturePercent ?? undefined,
-      storageLocationId: feedstock.storageLocationId ?? undefined,
-      notes: "" as string | undefined,
+      facilityId: initialData?.facilityId ?? "",
+      collectionDate: initialData?.date ? new Date(initialData.date) : new Date(),
+      supplierId: initialData?.supplierId ?? "",
+      driverId: initialData?.driverId ?? "",
+      vehicleType: initialData?.vehicleType ?? "",
+      fuelConsumedLiters: initialData?.fuelConsumedLiters ?? undefined,
+      feedstockTypeId: initialData?.feedstockTypeId ?? "",
+      weightKg: initialData?.weightKg ?? undefined,
+      moisturePercent: initialData?.moisturePercent ?? undefined,
+      storageLocationId: initialData?.storageLocationId ?? "",
+      notes: initialData?.notes ?? "",
     },
     onSubmit: async ({ value }) => {
-      // Check completion at submit time
-      const isCompleteAtSubmit = Boolean(
-        value.facilityId &&
-        value.supplierId &&
-        value.feedstockTypeId &&
-        value.weightKg !== undefined &&
-        value.weightKg > 0 &&
-        value.moisturePercent !== undefined &&
-        value.storageLocationId
-      );
+      const isComplete = isFeedstockComplete(value);
 
-      const result = await updateFeedstock(feedstock.id, value);
+      const result = isEdit && initialData
+        ? await updateFeedstock(initialData.id, value)
+        : await createFeedstock(value);
+
       if (!result.success) {
         toast.error(result.error);
         return;
       }
-      toast.success(isCompleteAtSubmit ? "Feedstock entry completed" : "Draft updated");
+
+      toast.success(
+        isComplete
+          ? "Feedstock entry completed"
+          : isEdit
+            ? "Draft updated"
+            : "Draft saved"
+      );
       router.push("/data-entry");
     },
   });
 
-  // Convert options to { value, label } format
-  const facilityOptions = options.facilities.map((f) => ({ value: f.id, label: f.name }));
-  const supplierOptions = options.suppliers.map((s) => ({ value: s.id, label: s.name }));
-  const driverOptions = options.drivers.map((d) => ({ value: d.id, label: d.name }));
-  const feedstockTypeOptions = options.feedstockTypes.map((t) => ({ value: t.id, label: t.name }));
-  const feedstockStorageOptions = options.storageLocations
-    .filter((loc) => loc.name.toLowerCase().includes("feedstock"))
-    .map((l) => ({ value: l.id, label: l.name }));
+  const handleDelete = async () => {
+    if (!initialData?.id) return;
+    setIsDeleting(true);
+    const result = await deleteFeedstock(initialData.id);
+    if (!result.success) {
+      toast.error(result.error);
+      setIsDeleting(false);
+      return;
+    }
+    toast.success("Feedstock deleted");
+    router.push("/data-entry");
+  };
+
+  // Convert options to { value, label } format (memoized)
+  const facilityOptions = React.useMemo(
+    () => options.facilities.map((f) => ({ value: f.id, label: f.name })),
+    [options.facilities]
+  );
+  const supplierOptions = React.useMemo(
+    () => options.suppliers.map((s) => ({ value: s.id, label: s.name })),
+    [options.suppliers]
+  );
+  const driverOptions = React.useMemo(
+    () => options.drivers.map((d) => ({ value: d.id, label: d.name })),
+    [options.drivers]
+  );
+  const feedstockTypeOptions = React.useMemo(
+    () => options.feedstockTypes.map((t) => ({ value: t.id, label: t.name })),
+    [options.feedstockTypes]
+  );
+  const feedstockStorageOptions = React.useMemo(
+    () =>
+      options.storageLocations
+        .filter((loc) => loc.name.toLowerCase().includes("feedstock"))
+        .map((l) => ({ value: l.id, label: l.name })),
+    [options.storageLocations]
+  );
 
   // Get supplier location for display
   const selectedSupplier = options.suppliers.find(
@@ -102,24 +139,17 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
   return (
     <form.Subscribe selector={(state) => state.values}>
       {(values) => {
-        const isComplete = Boolean(
-          values.facilityId &&
-          values.supplierId &&
-          values.feedstockTypeId &&
-          values.weightKg !== undefined &&
-          values.weightKg > 0 &&
-          values.moisturePercent !== undefined &&
-          values.storageLocationId
-        );
-
+        const isComplete = isFeedstockComplete(values);
         return (
-          <FormPageLayout
-            title="Edit Feedstock"
-            onSubmit={form.handleSubmit}
-            isSubmitting={form.state.isSubmitting}
-            hasDraft
-            isComplete={isComplete}
-          >
+    <FormPageLayout
+      title={isEdit ? "Edit Feedstock" : "New Feedstock"}
+      onSubmit={form.handleSubmit}
+      onDelete={isEdit ? handleDelete : undefined}
+      isSubmitting={form.state.isSubmitting}
+      isDeleting={isDeleting}
+      hasDraft={isEdit}
+      isComplete={isComplete}
+    >
       {/* Delivery Information */}
       <FormSection title="Delivery Information">
         <form.AppField name="facilityId">
@@ -153,7 +183,7 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
           )}
         </form.AppField>
 
-        {/* Supplier Location - Read-only, based on selected supplier */}
+        {/* Supplier Location - Read-only */}
         {selectedSupplier?.location && (
           <div className="flex flex-col gap-1">
             <Label className="text-sm font-medium">Supplier Location</Label>
@@ -243,14 +273,10 @@ export function FeedstockEditPage({ options, feedstock }: FeedstockEditPageProps
       <FormSection title="Documentation">
         <form.AppField name="notes">
           {(field) => (
-            <field.TextareaField
-              label="Notes"
-              placeholder="Enter notes"
-            />
+            <field.TextareaField label="Notes" placeholder="Enter notes" />
           )}
         </form.AppField>
 
-        {/* Photos */}
         <PhotoUpload
           value={photos}
           onChange={setPhotos}

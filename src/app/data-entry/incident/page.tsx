@@ -1,6 +1,6 @@
 import { getFormOptions } from "../actions";
 import { getProductionRunsForIncident } from "./actions";
-import { IncidentFormPage } from "./incident-form-page";
+import { IncidentForm } from "./incident-form";
 
 export default async function IncidentPage() {
   const [options, productionRuns] = await Promise.all([
@@ -8,5 +8,11 @@ export default async function IncidentPage() {
     getProductionRunsForIncident(),
   ]);
 
-  return <IncidentFormPage options={options} productionRuns={productionRuns} />;
+  return (
+    <IncidentForm
+      mode="create"
+      options={options}
+      productionRuns={productionRuns}
+    />
+  );
 }

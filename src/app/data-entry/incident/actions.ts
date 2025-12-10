@@ -1,15 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { incidentReports, productionRuns } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { incidentReports } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { toUuidOrNull } from "@/lib/form-utils";
+import { getProductionRunsForDropdown } from "@/lib/actions/utils";
+import { type ActionResult } from "@/lib/types/actions";
 
-// Convert empty string to null for optional UUID fields
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
+export type { ActionResult };
 
 interface CreateIncidentValues {
   productionRunId: string;
@@ -18,10 +17,6 @@ interface CreateIncidentValues {
   operatorId?: string;
   notes?: string;
 }
-
-export type ActionResult<T = unknown> =
-  | { success: true; data: T }
-  | { success: false; error: string };
 
 export async function createIncident(values: CreateIncidentValues): Promise<ActionResult<{ id: string }>> {
   // Validate required productionRunId
@@ -61,19 +56,14 @@ export async function getIncident(id: string) {
   return incident;
 }
 
-// Get production runs for the form dropdown
-export async function getProductionRunsForIncident() {
-  const runs = await db.query.productionRuns.findMany({
-    orderBy: desc(productionRuns.createdAt),
-    limit: 50,
-    with: {
-      facility: true,
-    },
-  });
+export async function deleteIncident(id: string): Promise<ActionResult<void>> {
+  await db.delete(incidentReports).where(eq(incidentReports.id, id));
 
-  return runs.map((r) => ({
-    id: r.id,
-    name: `${r.code} - ${r.facility?.name ?? "Unknown Facility"}`,
-    facilityId: r.facilityId,
-  }));
+  revalidatePath("/data-entry");
+  revalidatePath("/data-entry/incident");
+
+  return { success: true, data: undefined };
 }
+
+// Re-export shared function for convenience
+export { getProductionRunsForDropdown as getProductionRunsForIncident } from "@/lib/actions/utils";

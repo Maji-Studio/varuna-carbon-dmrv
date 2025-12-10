@@ -1,8 +1,8 @@
 import { getFormOptions } from "../actions";
-import { FeedstockFormPage } from "./feedstock-form-page";
+import { FeedstockForm } from "./feedstock-form";
 
 export default async function FeedstockPage() {
   const options = await getFormOptions();
 
-  return <FeedstockFormPage options={options} />;
+  return <FeedstockForm mode="create" options={options} />;
 }

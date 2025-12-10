@@ -5,30 +5,21 @@ import { productionRuns } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { type ProductionRunFormValues } from "@/lib/validations/data-entry";
+import { toUuidOrNull, toDateString, processFeedstockInputs } from "@/lib/form-utils";
+import { type ActionResult } from "@/lib/types/actions";
 
-// Convert empty string to null for optional UUID fields
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
+export type { ActionResult };
 
-// Generate a unique code like "PR-2025-043"
 async function generateProductionRunCode(): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `PR-${year}-`;
-
-  const result = await db.select({ count: sql<number>`count(*)` })
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
     .from(productionRuns)
-    .where(sql`code LIKE ${prefix + '%'}`);
-
+    .where(sql`code LIKE ${prefix + "%"}`);
   const count = result[0]?.count ?? 0;
-  const nextNumber = String(count + 1).padStart(3, '0');
-  return `${prefix}${nextNumber}`;
+  return `${prefix}${String(count + 1).padStart(3, "0")}`;
 }
-
-export type ActionResult<T = unknown> =
-  | { success: true; data: T }
-  | { success: false; error: string };
 
 export async function createProductionRun(values: ProductionRunFormValues): Promise<ActionResult<{ id: string }>> {
   // Validate required facilityId
@@ -38,29 +29,13 @@ export async function createProductionRun(values: ProductionRunFormValues): Prom
   }
 
   const code = await generateProductionRunCode();
-
-  // Calculate total feedstock amount from inputs
-  const totalFeedstockKg = values.feedstockInputs?.reduce(
-    (sum, input) => sum + (input.amountKg || 0),
-    0
-  );
-
-  // Create feedstock mix description (JSON for multi-source support)
-  const feedstockMix = values.feedstockInputs?.length
-    ? JSON.stringify(
-        values.feedstockInputs
-          .filter((f) => f.storageLocationId)
-          .map((f) => ({ storageLocationId: f.storageLocationId, amountKg: f.amountKg }))
-      )
-    : null;
-
-  // Get the first feedstock storage location ID if available
-  const feedstockStorageLocationId = toUuidOrNull(values.feedstockInputs?.[0]?.storageLocationId);
+  const { totalFeedstockKg, feedstockMix, feedstockStorageLocationId } =
+    processFeedstockInputs(values.feedstockInputs);
 
   const result = await db.insert(productionRuns).values({
     code,
     facilityId,
-    date: values.startTime?.toISOString().split("T")[0] ?? new Date().toISOString().split("T")[0],
+    date: toDateString(values.startTime),
     startTime: values.startTime ?? null,
     reactorId: toUuidOrNull(values.reactorId),
     processType: values.processType || null,
@@ -85,38 +60,25 @@ export async function createProductionRun(values: ProductionRunFormValues): Prom
   return { success: true as const, data: { id: result[0].id } };
 }
 
-export async function updateProductionRun(id: string, values: ProductionRunFormValues & { endTime?: Date }): Promise<ActionResult<{ id: string }>> {
-  // Validate required facilityId
+export async function updateProductionRun(
+  id: string,
+  values: ProductionRunFormValues & { endTime?: Date }
+): Promise<ActionResult<{ id: string }>> {
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
     return { success: false, error: "Facility is required" };
   }
 
-  // Calculate total feedstock amount from inputs
-  const totalFeedstockKg = values.feedstockInputs?.reduce(
-    (sum, input) => sum + (input.amountKg || 0),
-    0
-  );
+  const { totalFeedstockKg, feedstockMix, feedstockStorageLocationId } =
+    processFeedstockInputs(values.feedstockInputs);
 
-  // Create feedstock mix description (JSON for multi-source support)
-  const feedstockMix = values.feedstockInputs?.length
-    ? JSON.stringify(
-        values.feedstockInputs
-          .filter((f) => f.storageLocationId)
-          .map((f) => ({ storageLocationId: f.storageLocationId, amountKg: f.amountKg }))
-      )
-    : null;
-
-  // Get the first feedstock storage location ID if available
-  const feedstockStorageLocationId = toUuidOrNull(values.feedstockInputs?.[0]?.storageLocationId);
-
-  // Determine status
-  const hasRequiredFields = values.biocharAmountKg && totalFeedstockKg && values.endTime;
+  const hasRequiredFields =
+    values.biocharAmountKg && totalFeedstockKg && values.endTime;
 
   await db.update(productionRuns)
     .set({
       facilityId,
-      date: values.startTime?.toISOString().split("T")[0] ?? new Date().toISOString().split("T")[0],
+      date: toDateString(values.startTime),
       startTime: values.startTime ?? null,
       endTime: values.endTime ?? null,
       reactorId: toUuidOrNull(values.reactorId),
@@ -156,4 +118,15 @@ export async function getProductionRun(id: string) {
   });
 
   return productionRun;
+}
+
+export async function deleteProductionRun(
+  id: string
+): Promise<ActionResult<void>> {
+  await db.delete(productionRuns).where(eq(productionRuns.id, id));
+
+  revalidatePath("/data-entry");
+  revalidatePath("/data-entry/production-run");
+
+  return { success: true, data: undefined };
 }

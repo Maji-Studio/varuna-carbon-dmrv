@@ -1,6 +1,6 @@
 import { getFormOptions } from "../actions";
 import { getProductionRunsForSampling } from "./actions";
-import { SamplingFormPage } from "./sampling-form-page";
+import { SamplingForm } from "./sampling-form";
 
 export default async function SamplingPage() {
   const [options, productionRuns] = await Promise.all([
@@ -8,5 +8,11 @@ export default async function SamplingPage() {
     getProductionRunsForSampling(),
   ]);
 
-  return <SamplingFormPage options={options} productionRuns={productionRuns} />;
+  return (
+    <SamplingForm
+      mode="create"
+      options={options}
+      productionRuns={productionRuns}
+    />
+  );
 }

@@ -1,15 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { samples, productionRuns } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { samples } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { toUuidOrNull } from "@/lib/form-utils";
+import { getProductionRunsForDropdown } from "@/lib/actions/utils";
+import { type ActionResult } from "@/lib/types/actions";
 
-// Convert empty string to null for optional UUID fields
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
+export type { ActionResult };
 
 interface CreateSampleValues {
   productionRunId: string;
@@ -24,10 +23,6 @@ interface CreateSampleValues {
   volatileMatterPercent?: number;
   notes?: string;
 }
-
-export type ActionResult<T = unknown> =
-  | { success: true; data: T }
-  | { success: false; error: string };
 
 export async function createSample(values: CreateSampleValues): Promise<ActionResult<{ id: string }>> {
   // Validate required productionRunId
@@ -73,19 +68,14 @@ export async function getSample(id: string) {
   return sample;
 }
 
-// Get production runs for the form dropdown
-export async function getProductionRunsForSampling() {
-  const runs = await db.query.productionRuns.findMany({
-    orderBy: desc(productionRuns.createdAt),
-    limit: 50,
-    with: {
-      facility: true,
-    },
-  });
+export async function deleteSample(id: string): Promise<ActionResult<void>> {
+  await db.delete(samples).where(eq(samples.id, id));
 
-  return runs.map((r) => ({
-    id: r.id,
-    name: `${r.code} - ${r.facility?.name ?? "Unknown Facility"}`,
-    facilityId: r.facilityId,
-  }));
+  revalidatePath("/data-entry");
+  revalidatePath("/data-entry/sampling");
+
+  return { success: true, data: undefined };
 }
+
+// Re-export shared function for convenience
+export { getProductionRunsForDropdown as getProductionRunsForSampling } from "@/lib/actions/utils";

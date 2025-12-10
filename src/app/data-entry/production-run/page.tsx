@@ -1,8 +1,8 @@
 import { getFormOptions } from "../actions";
-import { ProductionRunFormPage } from "./production-run-form-page";
+import { ProductionRunForm } from "./production-run-form";
 
 export default async function ProductionRunPage() {
   const options = await getFormOptions();
 
-  return <ProductionRunFormPage options={options} />;
+  return <ProductionRunForm mode="create" options={options} />;
 }

@@ -2,29 +2,21 @@ import { getIncompleteEntries, getCompletedEntries } from "./actions";
 import { DataEntryCard, EntriesTabs } from "@/components/data-entry";
 
 export default async function DataEntryPage() {
-  const [incompleteEntries, completedEntries] = await Promise.all([
-    getIncompleteEntries(),
-    getCompletedEntries(),
-  ]);
+  const [incompleteEntries, completedEntries] = await Promise.all([getIncompleteEntries(), getCompletedEntries()]);
 
   return (
-    <div className="min-h-screen bg-neutral-100">
+    <div className="min-h-screen max-w-2xl mx-auto bg-neutral-50">
       <div className="flex flex-col gap-8 px-6 py-10">
         {/* Header */}
         <header className="flex items-center justify-between gap-3">
-          <h1 className="text-base font-medium text-foreground">
-            Dark Earth Carbon
-          </h1>
+          <h1 className="text-base font-medium text-foreground">Dark Earth Carbon</h1>
           <div className="size-10 rounded-full bg-stone-300" />
         </header>
 
         {/* Data Entry Hub */}
         <div className="flex flex-col gap-6">
           {/* Data Entries with Tabs */}
-          <EntriesTabs
-            incompleteEntries={incompleteEntries}
-            completedEntries={completedEntries}
-          />
+          <EntriesTabs incompleteEntries={incompleteEntries} completedEntries={completedEntries} />
 
           {/* Entry Point Cards Grid */}
           <div className="flex flex-col gap-2">
