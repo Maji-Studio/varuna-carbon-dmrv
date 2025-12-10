@@ -3,6 +3,8 @@ import { getFormOptions } from "../../actions";
 import { getSample, getProductionRunsForSampling } from "../actions";
 import { SamplingForm } from "../sampling-form";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

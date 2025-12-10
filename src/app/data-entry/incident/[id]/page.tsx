@@ -3,6 +3,8 @@ import { getFormOptions } from "../../actions";
 import { getIncident, getProductionRunsForIncident } from "../actions";
 import { IncidentForm } from "../incident-form";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }
