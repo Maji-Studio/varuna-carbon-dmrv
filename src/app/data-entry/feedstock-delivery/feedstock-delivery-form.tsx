@@ -98,8 +98,8 @@ export function FeedstockDeliveryForm({
             ? "Draft updated"
             : "Draft saved"
       );
-      router.push("/data-entry");
       router.refresh();
+      router.push("/data-entry");
     },
   });
 
@@ -113,8 +113,8 @@ export function FeedstockDeliveryForm({
       return;
     }
     toast.success("Feedstock delivery deleted");
-    router.push("/data-entry");
     router.refresh();
+    router.push("/data-entry");
   };
 
   // Convert options to { value, label } format (memoized)

@@ -67,8 +67,8 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
             ? "Draft updated"
             : "Draft saved"
       );
-      router.push("/data-entry");
       router.refresh();
+      router.push("/data-entry");
     },
   });
 
@@ -82,8 +82,8 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
       return;
     }
     toast.success("Feedstock deleted");
-    router.push("/data-entry");
     router.refresh();
+    router.push("/data-entry");
   };
 
   // Convert options to { value, label } format (memoized)

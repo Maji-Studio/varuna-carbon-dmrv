@@ -135,8 +135,8 @@ export function ProductionRunForm({
             ? "Draft updated"
             : "Draft saved"
       );
-      router.push("/data-entry");
       router.refresh();
+      router.push("/data-entry");
     },
   });
 
@@ -150,8 +150,8 @@ export function ProductionRunForm({
       return;
     }
     toast.success("Production run deleted");
-    router.push("/data-entry");
     router.refresh();
+    router.push("/data-entry");
   };
 
   // Filter storage locations by type (memoized)

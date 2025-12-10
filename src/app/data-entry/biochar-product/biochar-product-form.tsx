@@ -82,8 +82,8 @@ export function BiocharProductForm({
             ? "Draft updated"
             : "Draft saved"
       );
-      router.push("/data-entry");
       router.refresh();
+      router.push("/data-entry");
     },
   });
 
@@ -97,8 +97,8 @@ export function BiocharProductForm({
       return;
     }
     toast.success("Biochar product deleted");
-    router.push("/data-entry");
     router.refresh();
+    router.push("/data-entry");
   };
 
   // Filter storage locations

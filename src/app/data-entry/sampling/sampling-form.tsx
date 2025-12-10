@@ -86,8 +86,8 @@ export function SamplingForm({
             ? "Draft updated"
             : "Draft saved"
       );
-      router.push("/data-entry");
       router.refresh();
+      router.push("/data-entry");
     },
   });
 
@@ -101,8 +101,8 @@ export function SamplingForm({
       return;
     }
     toast.success("Sample deleted");
-    router.push("/data-entry");
     router.refresh();
+    router.push("/data-entry");
   };
 
   // Memoized options

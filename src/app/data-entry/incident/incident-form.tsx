@@ -74,8 +74,8 @@ export function IncidentForm({
             ? "Draft updated"
             : "Draft saved"
       );
-      router.push("/data-entry");
       router.refresh();
+      router.push("/data-entry");
     },
   });
 
@@ -89,8 +89,8 @@ export function IncidentForm({
       return;
     }
     toast.success("Incident report deleted");
-    router.push("/data-entry");
     router.refresh();
+    router.push("/data-entry");
   };
 
   // Memoized options
