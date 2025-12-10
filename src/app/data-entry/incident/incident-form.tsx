@@ -75,6 +75,7 @@ export function IncidentForm({
             : "Draft saved"
       );
       router.push("/data-entry");
+      router.refresh();
     },
   });
 
@@ -94,6 +95,7 @@ export function IncidentForm({
       }
       toast.success("Incident report deleted");
       router.push("/data-entry");
+      router.refresh();
     });
   };
 

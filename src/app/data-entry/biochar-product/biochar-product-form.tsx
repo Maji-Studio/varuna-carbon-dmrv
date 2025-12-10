@@ -83,6 +83,7 @@ export function BiocharProductForm({
             : "Draft saved"
       );
       router.push("/data-entry");
+      router.refresh();
     },
   });
 
@@ -102,6 +103,7 @@ export function BiocharProductForm({
       }
       toast.success("Biochar product deleted");
       router.push("/data-entry");
+      router.refresh();
     });
   };
 

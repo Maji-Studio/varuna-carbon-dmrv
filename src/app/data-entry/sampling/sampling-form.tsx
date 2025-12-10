@@ -87,6 +87,7 @@ export function SamplingForm({
             : "Draft saved"
       );
       router.push("/data-entry");
+      router.refresh();
     },
   });
 
@@ -106,6 +107,7 @@ export function SamplingForm({
       }
       toast.success("Sample deleted");
       router.push("/data-entry");
+      router.refresh();
     });
   };
 

@@ -68,6 +68,7 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
             : "Draft saved"
       );
       router.push("/data-entry");
+      router.refresh();
     },
   });
 
@@ -87,6 +88,7 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
       }
       toast.success("Feedstock deleted");
       router.push("/data-entry");
+      router.refresh();
     });
   };
 
