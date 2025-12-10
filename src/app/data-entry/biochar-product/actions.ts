@@ -69,6 +69,44 @@ export async function getBiocharProduct(id: string) {
   return product;
 }
 
+export async function updateBiocharProduct(
+  id: string,
+  values: Omit<BiocharProductFormValues, "photos">
+): Promise<ActionResult<{ id: string }>> {
+  const facilityId = toUuidOrNull(values.facilityId);
+  if (!facilityId) {
+    return { success: false, error: "Facility is required" };
+  }
+
+  try {
+    await db
+      .update(biocharProducts)
+      .set({
+        facilityId,
+        productionDate: values.productionDate ?? null,
+        formulationId: toUuidOrNull(values.formulationId),
+        totalWeightKg: values.totalWeightKg ?? null,
+        totalVolumeLiters: values.totalVolumeLiters ?? null,
+        storageLocationId: toUuidOrNull(values.storageLocationId),
+        biocharSourceStorageId: toUuidOrNull(values.biocharSourceStorageId),
+        biocharAmountKg: values.biocharAmountKg ?? null,
+        biocharPerM3Kg: values.biocharPerM3Kg ?? null,
+        compostWeightKg: values.compostWeightKg ?? null,
+        compostPerM3Kg: values.compostPerM3Kg ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(biocharProducts.id, id));
+
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/biochar-product");
+
+    return { success: true, data: { id } };
+  } catch (error) {
+    console.error("Failed to update biochar product:", error);
+    return { success: false, error: "Failed to update biochar product. Please try again." };
+  }
+}
+
 export async function deleteBiocharProduct(
   id: string
 ): Promise<ActionResult<void>> {

@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Wheat, Flame, Truck } from "lucide-react";
+import { Wheat, Flame, Truck, Package, FlaskConical, AlertTriangle } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
-type EntryType = "feedstock" | "production_run" | "feedstock_delivery";
+type EntryType = "feedstock" | "production_run" | "feedstock_delivery" | "biochar_product" | "sampling" | "incident";
 
 interface IncompleteEntryItemProps {
   id: string;
@@ -38,6 +38,21 @@ const typeConfig: Record<
     icon: Flame,
     label: "Production Run",
     href: "/data-entry/production-run",
+  },
+  biochar_product: {
+    icon: Package,
+    label: "Biochar Product",
+    href: "/data-entry/biochar-product",
+  },
+  sampling: {
+    icon: FlaskConical,
+    label: "Sampling",
+    href: "/data-entry/sampling",
+  },
+  incident: {
+    icon: AlertTriangle,
+    label: "Incident Report",
+    href: "/data-entry/incident",
   },
 };
 

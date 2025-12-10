@@ -7,7 +7,7 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createIncident, deleteIncident } from "./actions";
+import { createIncident, updateIncident, deleteIncident } from "./actions";
 import { isIncidentComplete } from "@/lib/validations/completion";
 import type { SelectOption } from "../actions";
 
@@ -58,13 +58,22 @@ export function IncidentForm({
     onSubmit: async ({ value }) => {
       const isComplete = isIncidentComplete(value);
 
-      const result = await createIncident(value);
+      const result = isEdit && initialData
+        ? await updateIncident(initialData.id, value)
+        : await createIncident(value);
+
       if (!result.success) {
         toast.error(result.error);
         return;
       }
 
-      toast.success(isComplete ? "Incident report completed" : "Draft saved");
+      toast.success(
+        isComplete
+          ? "Incident report completed"
+          : isEdit
+            ? "Draft updated"
+            : "Draft saved"
+      );
       router.push("/data-entry");
     },
   });

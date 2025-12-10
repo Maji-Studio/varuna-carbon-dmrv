@@ -183,3 +183,66 @@ const form = useAppForm({
 
 - Photo uploads not persisted (documents table pending)
 - Form-level Zod validation not yet connected (only field-level validators used; server-side validation with toast errors now working)
+
+---
+
+## Code Review Findings (Dec 10, 2025)
+
+### Fixed - Critical Issues
+
+| Issue | Status | Fix |
+|-------|--------|-----|
+| Missing error handling on DB operations | ✅ Fixed | Added try-catch to all action functions |
+| Biochar form notes bug | ✅ Fixed | Changed `notes: ""` → `notes: initialData?.notes ?? ""` |
+| Buggy inline completion logic | ✅ Fixed | Now using `isFeedstockComplete()` etc. from completion.ts |
+
+**Details on completion logic bug:**
+```typescript
+// BEFORE (buggy) - 0 is falsy, so weightKg=0 would fail
+const hasRequiredFields = values.weightKg && values.moisturePercent;
+
+// AFTER (correct) - uses proper completion function
+const status = isFeedstockComplete(values) ? "complete" : "missing_data";
+```
+
+### Known Issues - Not Yet Fixed
+
+#### 1. Re-export pattern broken in "use server" files
+**Files:** `sampling/actions.ts`, `incident/actions.ts`
+**Symptom:** Build fails with "Export doesn't exist in target module"
+```typescript
+// This pattern doesn't work in "use server" files with Turbopack
+export { getProductionRunsForDropdown as getProductionRunsForSampling } from "@/lib/actions/utils";
+```
+**Fix:** Move the function into each file or restructure imports.
+
+#### 2. PhotoUpload state never used (memory leak risk)
+**Files:** All 6 form components
+```typescript
+const [photos, setPhotos] = React.useState<File[]>([]); // Created but never sent to server
+```
+**Fix:** Either integrate with document upload or remove the state.
+
+#### 3. Zod schemas defined but never validated at runtime
+**File:** `src/lib/validations/data-entry.ts`
+- 6 Zod schemas exist but `.parse()` / `.safeParse()` never called
+- Currently only used as TypeScript types
+**Impact:** Invalid data could be saved to database
+
+#### 4. Unused completion functions (orphaned code)
+**File:** `src/lib/validations/completion.ts`
+- `isSamplingComplete()` - never called
+- `isIncidentComplete()` - never called
+- `isBiocharProductComplete()` - only called in form, not in actions
+
+#### 5. Code duplication (not critical but technical debt)
+- Code generation function duplicated 4x (~80 lines)
+- Delete handler duplicated 6x in form components
+- Option conversion (`map(f => ({value: f.id, label: f.name}))`) duplicated 6x
+- Revalidation pattern (`revalidatePath`) repeated 30+ times
+
+#### 6. Production run has dual state for feedstock inputs
+**File:** `production-run-form.tsx`
+- TanStack Form state has `feedstockAmountKg`
+- Separate React state has `feedstockInputs` array
+- Two sources of truth - could cause sync issues

@@ -60,6 +60,38 @@ export async function getIncident(id: string) {
   return incident;
 }
 
+export async function updateIncident(
+  id: string,
+  values: CreateIncidentValues
+): Promise<ActionResult<{ id: string }>> {
+  const productionRunId = toUuidOrNull(values.productionRunId);
+  if (!productionRunId) {
+    return { success: false, error: "Production Run is required" };
+  }
+
+  try {
+    await db
+      .update(incidentReports)
+      .set({
+        productionRunId,
+        incidentTime: values.incidentTime,
+        reactorId: toUuidOrNull(values.reactorId),
+        operatorId: toUuidOrNull(values.operatorId),
+        notes: values.notes || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(incidentReports.id, id));
+
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/incident");
+
+    return { success: true, data: { id } };
+  } catch (error) {
+    console.error("Failed to update incident:", error);
+    return { success: false, error: "Failed to update incident. Please try again." };
+  }
+}
+
 export async function deleteIncident(id: string): Promise<ActionResult<void>> {
   try {
     await db.delete(incidentReports).where(eq(incidentReports.id, id));
@@ -74,5 +106,7 @@ export async function deleteIncident(id: string): Promise<ActionResult<void>> {
   }
 }
 
-// Re-export shared function for convenience
-export { getProductionRunsForDropdown as getProductionRunsForIncident } from "@/lib/actions/utils";
+// Wrapper function for server action compatibility
+export async function getProductionRunsForIncident() {
+  return getProductionRunsForDropdown();
+}

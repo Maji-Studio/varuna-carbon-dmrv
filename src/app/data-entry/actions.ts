@@ -6,6 +6,9 @@ import {
   feedstockTypes,
   feedstockDeliveries,
   productionRuns,
+  biocharProducts,
+  samples,
+  incidentReports,
   facilities,
   suppliers,
   drivers,
@@ -21,7 +24,7 @@ import { eq, desc } from "drizzle-orm";
 
 export type IncompleteEntry = {
   id: string;
-  type: "feedstock" | "production_run" | "feedstock_delivery";
+  type: "feedstock" | "production_run" | "feedstock_delivery" | "biochar_product" | "sampling" | "incident";
   name: string;
   date: string;
   description?: string;
@@ -56,6 +59,34 @@ export async function getIncompleteEntries(): Promise<IncompleteEntry[]> {
   const incompleteProductionRuns = await db.query.productionRuns.findMany({
     where: eq(productionRuns.status, "running"),
     orderBy: desc(productionRuns.createdAt),
+    limit: 10,
+  });
+
+  // Get biochar products with testing status (incomplete)
+  const incompleteBiocharProducts = await db.query.biocharProducts.findMany({
+    where: eq(biocharProducts.status, "testing"),
+    with: {
+      formulation: true,
+    },
+    orderBy: desc(biocharProducts.createdAt),
+    limit: 10,
+  });
+
+  // Get all samples (they don't have status, consider recent ones as potentially incomplete)
+  const recentSamples = await db.query.samples.findMany({
+    with: {
+      productionRun: true,
+    },
+    orderBy: desc(samples.createdAt),
+    limit: 10,
+  });
+
+  // Get all incident reports (recent ones)
+  const recentIncidents = await db.query.incidentReports.findMany({
+    with: {
+      productionRun: true,
+    },
+    orderBy: desc(incidentReports.createdAt),
     limit: 10,
   });
 
@@ -123,11 +154,74 @@ export async function getIncompleteEntries(): Promise<IncompleteEntry[]> {
     }
   );
 
+  // Transform biochar products
+  const biocharProductEntries: IncompleteEntry[] = incompleteBiocharProducts.map(
+    (bp) => {
+      // Count missing required fields
+      let missingCount = 0;
+      if (!bp.formulationId) missingCount++;
+      if (!bp.totalWeightKg) missingCount++;
+      if (!bp.biocharAmountKg) missingCount++;
+
+      return {
+        id: bp.id,
+        type: "biochar_product" as const,
+        name: bp.formulation?.name || bp.code,
+        date: formatDate(bp.productionDate),
+        description: bp.code,
+        weight: bp.totalWeightKg
+          ? `${bp.totalWeightKg.toLocaleString()} kg`
+          : undefined,
+        missingCount: Math.max(missingCount, 1),
+        updatedAt: bp.updatedAt,
+      };
+    }
+  );
+
+  // Transform samples
+  const sampleEntries: IncompleteEntry[] = recentSamples.map((s) => {
+    // Count missing optional but important fields
+    let missingCount = 0;
+    if (!s.weightG) missingCount++;
+    if (!s.temperatureC) missingCount++;
+    if (!s.moisturePercent) missingCount++;
+
+    return {
+      id: s.id,
+      type: "sampling" as const,
+      name: "Sample",
+      date: formatDate(s.samplingTime),
+      description: s.productionRun?.feedstockMix ?? undefined,
+      missingCount: Math.max(missingCount, 1),
+      updatedAt: s.updatedAt,
+    };
+  });
+
+  // Transform incidents
+  const incidentEntries: IncompleteEntry[] = recentIncidents.map((i) => {
+    // Count missing fields
+    let missingCount = 0;
+    if (!i.notes) missingCount++;
+
+    return {
+      id: i.id,
+      type: "incident" as const,
+      name: "Incident Report",
+      date: formatDate(i.incidentTime),
+      description: i.productionRun?.feedstockMix ?? undefined,
+      missingCount: Math.max(missingCount, 1),
+      updatedAt: i.updatedAt,
+    };
+  });
+
   // Combine and sort by updatedAt (most recent first)
   return [
     ...feedstockDeliveryEntries,
     ...feedstockEntries,
     ...productionRunEntries,
+    ...biocharProductEntries,
+    ...sampleEntries,
+    ...incidentEntries,
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 }
 

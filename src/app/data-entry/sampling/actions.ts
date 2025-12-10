@@ -72,6 +72,44 @@ export async function getSample(id: string) {
   return sample;
 }
 
+export async function updateSample(
+  id: string,
+  values: CreateSampleValues
+): Promise<ActionResult<{ id: string }>> {
+  const productionRunId = toUuidOrNull(values.productionRunId);
+  if (!productionRunId) {
+    return { success: false, error: "Production Run is required" };
+  }
+
+  try {
+    await db
+      .update(samples)
+      .set({
+        productionRunId,
+        samplingTime: values.samplingTime,
+        reactorId: toUuidOrNull(values.reactorId),
+        operatorId: toUuidOrNull(values.operatorId),
+        weightG: values.weightG ?? null,
+        volumeMl: values.volumeMl ?? null,
+        temperatureC: values.temperatureC ?? null,
+        moisturePercent: values.moisturePercent ?? null,
+        ashPercent: values.ashPercent ?? null,
+        volatileMatterPercent: values.volatileMatterPercent ?? null,
+        notes: values.notes || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(samples.id, id));
+
+    revalidatePath("/data-entry");
+    revalidatePath("/data-entry/sampling");
+
+    return { success: true, data: { id } };
+  } catch (error) {
+    console.error("Failed to update sample:", error);
+    return { success: false, error: "Failed to update sample. Please try again." };
+  }
+}
+
 export async function deleteSample(id: string): Promise<ActionResult<void>> {
   try {
     await db.delete(samples).where(eq(samples.id, id));
@@ -86,5 +124,7 @@ export async function deleteSample(id: string): Promise<ActionResult<void>> {
   }
 }
 
-// Re-export shared function for convenience
-export { getProductionRunsForDropdown as getProductionRunsForSampling } from "@/lib/actions/utils";
+// Wrapper function for server action compatibility
+export async function getProductionRunsForSampling() {
+  return getProductionRunsForDropdown();
+}

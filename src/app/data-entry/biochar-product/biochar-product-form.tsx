@@ -7,7 +7,7 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createBiocharProduct, deleteBiocharProduct } from "./actions";
+import { createBiocharProduct, updateBiocharProduct, deleteBiocharProduct } from "./actions";
 import { isBiocharProductComplete } from "@/lib/validations/completion";
 import type { SelectOption } from "../actions";
 
@@ -66,13 +66,22 @@ export function BiocharProductForm({
     onSubmit: async ({ value }) => {
       const isComplete = isBiocharProductComplete(value);
 
-      const result = await createBiocharProduct(value);
+      const result = isEdit && initialData
+        ? await updateBiocharProduct(initialData.id, value)
+        : await createBiocharProduct(value);
+
       if (!result.success) {
         toast.error(result.error);
         return;
       }
 
-      toast.success(isComplete ? "Biochar product completed" : "Draft saved");
+      toast.success(
+        isComplete
+          ? "Biochar product completed"
+          : isEdit
+            ? "Draft updated"
+            : "Draft saved"
+      );
       router.push("/data-entry");
     },
   });

@@ -7,7 +7,7 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createSample, deleteSample } from "./actions";
+import { createSample, updateSample, deleteSample } from "./actions";
 import { isSamplingComplete } from "@/lib/validations/completion";
 import type { SelectOption } from "../actions";
 
@@ -70,13 +70,22 @@ export function SamplingForm({
     onSubmit: async ({ value }) => {
       const isComplete = isSamplingComplete(value);
 
-      const result = await createSample(value);
+      const result = isEdit && initialData
+        ? await updateSample(initialData.id, value)
+        : await createSample(value);
+
       if (!result.success) {
         toast.error(result.error);
         return;
       }
 
-      toast.success(isComplete ? "Sample completed" : "Draft saved");
+      toast.success(
+        isComplete
+          ? "Sample completed"
+          : isEdit
+            ? "Draft updated"
+            : "Draft saved"
+      );
       router.push("/data-entry");
     },
   });
