@@ -36,7 +36,6 @@ export async function createFeedstock(
     values.feedstockTypeId &&
     values.weightKg &&
     values.moisturePercent &&
-    values.supplierId &&
     values.storageLocationId;
 
   const result = await db.insert(feedstocks).values({
@@ -45,10 +44,6 @@ export async function createFeedstock(
     date: toDateString(values.collectionDate),
     collectionDate: values.collectionDate ?? null,
     feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
-    supplierId: toUuidOrNull(values.supplierId),
-    driverId: toUuidOrNull(values.driverId),
-    vehicleType: values.vehicleType || null,
-    fuelConsumedLiters: values.fuelConsumedLiters ?? null,
     weightKg: values.weightKg ?? null,
     moisturePercent: values.moisturePercent ?? null,
     storageLocationId: toUuidOrNull(values.storageLocationId),
@@ -74,7 +69,6 @@ export async function updateFeedstock(id: string, values: Omit<FeedstockFormValu
     values.feedstockTypeId &&
     values.weightKg &&
     values.moisturePercent &&
-    values.supplierId &&
     values.storageLocationId;
 
   await db.update(feedstocks)
@@ -83,10 +77,6 @@ export async function updateFeedstock(id: string, values: Omit<FeedstockFormValu
       date: toDateString(values.collectionDate),
       collectionDate: values.collectionDate ?? null,
       feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
-      supplierId: toUuidOrNull(values.supplierId),
-      driverId: toUuidOrNull(values.driverId),
-      vehicleType: values.vehicleType || null,
-      fuelConsumedLiters: values.fuelConsumedLiters ?? null,
       weightKg: values.weightKg ?? null,
       moisturePercent: values.moisturePercent ?? null,
       storageLocationId: toUuidOrNull(values.storageLocationId),

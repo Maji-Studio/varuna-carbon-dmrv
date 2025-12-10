@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Wheat, Flame } from "lucide-react";
+import { Wheat, Flame, Truck } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
-type EntryType = "feedstock" | "production_run";
+type EntryType = "feedstock" | "production_run" | "feedstock_delivery";
 
 interface IncompleteEntryItemProps {
   id: string;
@@ -24,6 +24,11 @@ const typeConfig: Record<
   EntryType,
   { icon: React.ElementType; label: string; href: string }
 > = {
+  feedstock_delivery: {
+    icon: Truck,
+    label: "Feedstock Delivery",
+    href: "/data-entry/feedstock-delivery",
+  },
   feedstock: {
     icon: Wheat,
     label: "Feedstock",

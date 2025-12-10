@@ -5,15 +5,9 @@ import { z } from "zod";
 // ============================================
 
 export const feedstockFormSchema = z.object({
-  // Delivery Information
+  // Overview
   facilityId: z.string().uuid("Please select a facility"),
   collectionDate: z.date().optional(),
-  supplierId: z.string().uuid().optional(),
-  // Note: Figma has "Supplier Location" but DB has location on supplier table
-  // This would need to come from the selected supplier
-  driverId: z.string().uuid().optional(),
-  vehicleType: z.string().optional(),
-  fuelConsumedLiters: z.number().min(0).optional(),
 
   // Feedstock Details
   feedstockTypeId: z.string().uuid().optional(),
@@ -27,6 +21,31 @@ export const feedstockFormSchema = z.object({
 });
 
 export type FeedstockFormValues = z.infer<typeof feedstockFormSchema>;
+
+// ============================================
+// Feedstock Delivery Form Schema
+// ============================================
+
+export const feedstockDeliveryFormSchema = z.object({
+  // Overview
+  facilityId: z.string().uuid("Please select a facility"),
+  deliveryDate: z.date().optional(),
+
+  // Delivery Details
+  supplierId: z.string().uuid().optional(),
+  driverId: z.string().uuid().optional(),
+  vehicleType: z.string().optional(),
+  fuelType: z.string().optional(),
+  fuelConsumedLiters: z.number().min(0).optional(),
+
+  // Documentation
+  notes: z.string().optional(),
+  photos: z.array(z.instanceof(File)).optional(),
+});
+
+export type FeedstockDeliveryFormValues = z.infer<
+  typeof feedstockDeliveryFormSchema
+>;
 
 // ============================================
 // Production Run Form Schema

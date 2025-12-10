@@ -27,17 +27,10 @@ export default async function EditFeedstockPage({ params }: PageProps) {
         facilityId: feedstock.facilityId,
         date: feedstock.date,
         feedstockTypeId: feedstock.feedstockTypeId,
-        supplierId: feedstock.supplierId,
-        driverId: feedstock.driverId,
-        vehicleType: feedstock.vehicleType,
-        fuelConsumedLiters: feedstock.fuelConsumedLiters,
         weightKg: feedstock.weightKg,
         moisturePercent: feedstock.moisturePercent,
         storageLocationId: feedstock.storageLocationId,
         notes: feedstock.notes,
-        supplier: feedstock.supplier
-          ? { location: feedstock.supplier.location }
-          : null,
       }}
     />
   );

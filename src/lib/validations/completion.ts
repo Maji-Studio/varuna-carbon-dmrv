@@ -1,5 +1,6 @@
 import type {
   FeedstockFormValues,
+  FeedstockDeliveryFormValues,
   ProductionRunFormValues,
   SamplingFormValues,
   IncidentFormValues,
@@ -7,14 +8,23 @@ import type {
 } from "./data-entry";
 
 /**
+ * Check if feedstock delivery form has all required fields filled
+ */
+export function isFeedstockDeliveryComplete(
+  values: Partial<FeedstockDeliveryFormValues>
+): boolean {
+  return Boolean(values.facilityId && values.supplierId && values.deliveryDate);
+}
+
+/**
  * Check if feedstock form has all required fields filled
+ * Note: supplierId is now tracked on the feedstock delivery, not the feedstock
  */
 export function isFeedstockComplete(
   values: Partial<FeedstockFormValues>
 ): boolean {
   return Boolean(
     values.facilityId &&
-      values.supplierId &&
       values.feedstockTypeId &&
       values.weightKg !== undefined &&
       values.weightKg > 0 &&
