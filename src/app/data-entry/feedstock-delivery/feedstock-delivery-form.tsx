@@ -65,7 +65,7 @@ export function FeedstockDeliveryForm({
   const router = useRouter();
   const isEdit = mode === "edit";
   const [photos, setPhotos] = React.useState<File[]>([]);
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isPending, startTransition] = React.useTransition();
 
   const form = useAppForm({
     defaultValues: {
@@ -103,18 +103,24 @@ export function FeedstockDeliveryForm({
     },
   });
 
+  const handleSubmit = () => {
+    startTransition(() => {
+      form.handleSubmit();
+    });
+  };
+
   const handleDelete = async () => {
     if (!initialData?.id) return;
-    setIsDeleting(true);
-    const result = await deleteFeedstockDelivery(initialData.id);
-    if (!result.success) {
-      toast.error(result.error);
-      setIsDeleting(false);
-      return;
-    }
-    toast.success("Feedstock delivery deleted");
-    router.push("/data-entry");
-    router.refresh();
+    startTransition(async () => {
+      const result = await deleteFeedstockDelivery(initialData.id);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Feedstock delivery deleted");
+      router.push("/data-entry");
+      router.refresh();
+    });
   };
 
   // Convert options to { value, label } format (memoized)
@@ -143,10 +149,10 @@ export function FeedstockDeliveryForm({
         return (
           <FormPageLayout
             title={isEdit ? "Edit Feedstock Delivery" : "New Feedstock Delivery"}
-            onSubmit={form.handleSubmit}
+            onSubmit={handleSubmit}
             onDelete={isEdit ? handleDelete : undefined}
-            isSubmitting={form.state.isSubmitting}
-            isDeleting={isDeleting}
+            isSubmitting={isPending}
+            isDeleting={isPending}
             hasDraft={isEdit}
             isComplete={isComplete}
           >

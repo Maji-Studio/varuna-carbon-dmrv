@@ -51,7 +51,7 @@ export function SamplingForm({
   const router = useRouter();
   const isEdit = mode === "edit";
   const [photos, setPhotos] = React.useState<File[]>([]);
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isPending, startTransition] = React.useTransition();
 
   const form = useAppForm({
     defaultValues: {
@@ -91,18 +91,24 @@ export function SamplingForm({
     },
   });
 
+  const handleSubmit = () => {
+    startTransition(() => {
+      form.handleSubmit();
+    });
+  };
+
   const handleDelete = async () => {
     if (!initialData?.id) return;
-    setIsDeleting(true);
-    const result = await deleteSample(initialData.id);
-    if (!result.success) {
-      toast.error(result.error);
-      setIsDeleting(false);
-      return;
-    }
-    toast.success("Sample deleted");
-    router.push("/data-entry");
-    router.refresh();
+    startTransition(async () => {
+      const result = await deleteSample(initialData.id);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Sample deleted");
+      router.push("/data-entry");
+      router.refresh();
+    });
   };
 
   // Memoized options
@@ -127,10 +133,10 @@ export function SamplingForm({
         return (
           <FormPageLayout
             title={isEdit ? "Edit Sampling" : "New Sampling"}
-            onSubmit={form.handleSubmit}
+            onSubmit={handleSubmit}
             onDelete={isEdit ? handleDelete : undefined}
-            isSubmitting={form.state.isSubmitting}
-            isDeleting={isDeleting}
+            isSubmitting={isPending}
+            isDeleting={isPending}
             hasDraft={isEdit}
             isComplete={isComplete}
           >

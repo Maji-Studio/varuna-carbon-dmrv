@@ -46,7 +46,7 @@ export function BiocharProductForm({
   const router = useRouter();
   const isEdit = mode === "edit";
   const [photos, setPhotos] = React.useState<File[]>([]);
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isPending, startTransition] = React.useTransition();
 
   const form = useAppForm({
     defaultValues: {
@@ -87,18 +87,24 @@ export function BiocharProductForm({
     },
   });
 
+  const handleSubmit = () => {
+    startTransition(() => {
+      form.handleSubmit();
+    });
+  };
+
   const handleDelete = async () => {
     if (!initialData?.id) return;
-    setIsDeleting(true);
-    const result = await deleteBiocharProduct(initialData.id);
-    if (!result.success) {
-      toast.error(result.error);
-      setIsDeleting(false);
-      return;
-    }
-    toast.success("Biochar product deleted");
-    router.push("/data-entry");
-    router.refresh();
+    startTransition(async () => {
+      const result = await deleteBiocharProduct(initialData.id);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Biochar product deleted");
+      router.push("/data-entry");
+      router.refresh();
+    });
   };
 
   // Filter storage locations
@@ -147,10 +153,10 @@ export function BiocharProductForm({
         return (
           <FormPageLayout
             title={isEdit ? "Edit Biochar Product" : "New Biochar Product"}
-            onSubmit={form.handleSubmit}
+            onSubmit={handleSubmit}
             onDelete={isEdit ? handleDelete : undefined}
-            isSubmitting={form.state.isSubmitting}
-            isDeleting={isDeleting}
+            isSubmitting={isPending}
+            isDeleting={isPending}
             hasDraft={isEdit}
             isComplete={isComplete}
           >

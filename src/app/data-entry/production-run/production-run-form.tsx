@@ -68,7 +68,7 @@ export function ProductionRunForm({
 }: ProductionRunFormProps) {
   const router = useRouter();
   const isEdit = mode === "edit";
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isPending, startTransition] = React.useTransition();
 
   // Feedstock inputs state for multi-source blending
   const [feedstockInputs, setFeedstockInputs] = React.useState<
@@ -140,18 +140,24 @@ export function ProductionRunForm({
     },
   });
 
+  const handleSubmit = () => {
+    startTransition(() => {
+      form.handleSubmit();
+    });
+  };
+
   const handleDelete = async () => {
     if (!initialData?.id) return;
-    setIsDeleting(true);
-    const result = await deleteProductionRun(initialData.id);
-    if (!result.success) {
-      toast.error(result.error);
-      setIsDeleting(false);
-      return;
-    }
-    toast.success("Production run deleted");
-    router.push("/data-entry");
-    router.refresh();
+    startTransition(async () => {
+      const result = await deleteProductionRun(initialData.id);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Production run deleted");
+      router.push("/data-entry");
+      router.refresh();
+    });
   };
 
   // Filter storage locations by type (memoized)
@@ -231,10 +237,10 @@ export function ProductionRunForm({
         return (
           <FormPageLayout
             title={isEdit ? "Edit Production Run" : "New Production Run"}
-            onSubmit={form.handleSubmit}
+            onSubmit={handleSubmit}
             onDelete={isEdit ? handleDelete : undefined}
-            isSubmitting={form.state.isSubmitting}
-            isDeleting={isDeleting}
+            isSubmitting={isPending}
+            isDeleting={isPending}
             hasDraft={isEdit}
             isComplete={isComplete}
           >

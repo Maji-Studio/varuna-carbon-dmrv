@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getIncompleteEntries, getCompletedEntries } from "./actions";
 import { DataEntryCard, DataEntryTabs } from "@/components/data-entry";
 

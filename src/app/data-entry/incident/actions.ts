@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { incidentReports } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, refresh } from "next/cache";
 import { toUuidOrNull } from "@/lib/form-utils";
 import { getProductionRunsForDropdown } from "@/lib/actions/utils";
 import { type ActionResult } from "@/lib/types/actions";
@@ -35,6 +35,7 @@ export async function createIncident(values: CreateIncidentValues): Promise<Acti
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/incident");
+    refresh();
 
     return { success: true, data: { id: result[0].id } };
   } catch (error) {
@@ -84,6 +85,7 @@ export async function updateIncident(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/incident");
+    refresh();
 
     return { success: true, data: { id } };
   } catch (error) {
@@ -98,6 +100,7 @@ export async function deleteIncident(id: string): Promise<ActionResult<void>> {
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/incident");
+    refresh();
 
     return { success: true, data: undefined };
   } catch (error) {
