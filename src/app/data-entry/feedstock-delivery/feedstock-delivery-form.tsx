@@ -99,6 +99,7 @@ export function FeedstockDeliveryForm({
             : "Draft saved"
       );
       router.push("/data-entry");
+      router.refresh();
     },
   });
 
@@ -113,6 +114,7 @@ export function FeedstockDeliveryForm({
     }
     toast.success("Feedstock delivery deleted");
     router.push("/data-entry");
+    router.refresh();
   };
 
   // Convert options to { value, label } format (memoized)
