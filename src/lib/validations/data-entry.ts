@@ -1,0 +1,165 @@
+import { z } from "zod";
+
+// ============================================
+// Feedstock Form Schema
+// ============================================
+
+export const feedstockFormSchema = z.object({
+  // Overview
+  facilityId: z.string().uuid("Please select a facility"),
+  collectionDate: z.date().optional(),
+
+  // Feedstock Details
+  feedstockTypeId: z.string().uuid().optional(),
+  weightKg: z.number().min(0).optional(),
+  moisturePercent: z.number().min(0).max(100).optional(),
+  storageLocationId: z.string().uuid().optional(),
+
+  // Documentation
+  notes: z.string().optional(),
+  photos: z.array(z.instanceof(File)).optional(),
+});
+
+export type FeedstockFormValues = z.infer<typeof feedstockFormSchema>;
+
+// ============================================
+// Feedstock Delivery Form Schema
+// ============================================
+
+export const feedstockDeliveryFormSchema = z.object({
+  // Overview
+  facilityId: z.string().uuid("Please select a facility"),
+  deliveryDate: z.date().optional(),
+
+  // Delivery Details
+  supplierId: z.string().uuid().optional(),
+  driverId: z.string().uuid().optional(),
+  vehicleType: z.string().optional(),
+  fuelType: z.string().optional(),
+  fuelConsumedLiters: z.number().min(0).optional(),
+
+  // Documentation
+  notes: z.string().optional(),
+  photos: z.array(z.instanceof(File)).optional(),
+});
+
+export type FeedstockDeliveryFormValues = z.infer<
+  typeof feedstockDeliveryFormSchema
+>;
+
+// ============================================
+// Production Run Form Schema
+// ============================================
+
+export const productionRunFormSchema = z.object({
+  // Overview
+  facilityId: z.string().uuid("Please select a facility"),
+  startTime: z.date().optional(),
+  reactorId: z.string().uuid().optional(),
+  processType: z.string().optional(),
+  operatorId: z.string().uuid().optional(),
+
+  // Feedstock Input
+  // Note: Figma shows multiple feedstock sources, DB has single feedstockStorageLocationId
+  // This is a potential inconsistency - could use feedstockMix JSON field or separate table
+  feedstockInputs: z
+    .array(
+      z.object({
+        storageLocationId: z.string().uuid(),
+        amountKg: z.number().min(0),
+      })
+    )
+    .optional(),
+  moistureBeforeDryingPercent: z.number().min(0).max(100).optional(),
+  moistureAfterDryingPercent: z.number().min(0).max(100).optional(),
+
+  // Biochar Output
+  biocharAmountKg: z.number().min(0).optional(),
+  biocharStorageLocationId: z.string().uuid().optional(),
+
+  // Processing Parameters
+  dieselOperationLiters: z.number().min(0).optional(),
+  dieselGensetLiters: z.number().min(0).optional(),
+  preprocessingFuelLiters: z.number().min(0).optional(),
+  electricityKwh: z.number().min(0).optional(),
+});
+
+export type ProductionRunFormValues = z.infer<typeof productionRunFormSchema>;
+
+// ============================================
+// Sampling Form Schema
+// ============================================
+
+export const samplingFormSchema = z.object({
+  // Overview
+  facilityId: z.string().uuid("Please select a facility"),
+  samplingTime: z.date(),
+  reactorId: z.string().uuid().optional(),
+  operatorId: z.string().uuid().optional(),
+
+  // Sampling Details
+  weightG: z.number().min(0).optional(),
+  volumeMl: z.number().min(0).optional(),
+  temperatureC: z.number().optional(),
+  moisturePercent: z.number().min(0).max(100).optional(),
+  ashPercent: z.number().min(0).max(100).optional(),
+  volatileMatterPercent: z.number().min(0).max(100).optional(),
+
+  // Documentation
+  notes: z.string().optional(),
+  photos: z.array(z.instanceof(File)).optional(),
+});
+
+export type SamplingFormValues = z.infer<typeof samplingFormSchema>;
+
+// ============================================
+// Incident Report Form Schema
+// ============================================
+
+export const incidentFormSchema = z.object({
+  // Overview
+  facilityId: z.string().uuid("Please select a facility"),
+  incidentTime: z.date(),
+  reactorId: z.string().uuid().optional(),
+  operatorId: z.string().uuid().optional(),
+
+  // Documentation
+  notes: z.string().optional(),
+  photos: z.array(z.instanceof(File)).optional(),
+});
+
+export type IncidentFormValues = z.infer<typeof incidentFormSchema>;
+
+// ============================================
+// Biochar Product Form Schema
+// ============================================
+
+// Schema for form field validation (without photos, which are handled separately)
+export const biocharProductFormSchema = z.object({
+  // Overview
+  facilityId: z.string().min(1, "Please select a facility"),
+  productionDate: z.date().optional(),
+
+  // Formulation
+  formulationId: z.string().optional(),
+  totalWeightKg: z.number().min(0, "Must be positive").optional(),
+  totalVolumeLiters: z.number().min(0, "Must be positive").optional(),
+  storageLocationId: z.string().optional(),
+
+  // Formulation Details
+  biocharSourceStorageId: z.string().optional(),
+  biocharAmountKg: z.number().min(0, "Must be positive").optional(),
+  biocharPerM3Kg: z.number().min(0, "Must be positive").optional(),
+  compostWeightKg: z.number().min(0, "Must be positive").optional(),
+  compostPerM3Kg: z.number().min(0, "Must be positive").optional(),
+
+  // Documentation
+  notes: z.string().optional(),
+});
+
+// Full schema including photos for submission
+export const biocharProductSubmitSchema = biocharProductFormSchema.extend({
+  photos: z.array(z.instanceof(File)).optional(),
+});
+
+export type BiocharProductFormValues = z.infer<typeof biocharProductSubmitSchema>;
