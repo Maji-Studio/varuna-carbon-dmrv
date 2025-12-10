@@ -1,31 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "@tanstack/react-form";
+import { useAppForm } from "@/components/forms/form-context";
 import { type FeedstockFormValues } from "@/lib/validations/data-entry";
 import { FormSheet } from "@/components/forms/form-sheet";
 import { FormSection, FormHeader } from "@/components/forms/form-section";
+import { PhotoUpload } from "@/components/forms/photo-upload";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { PhotoUpload } from "@/components/forms/photo-upload";
-import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { z } from "zod";
 
 // ============================================
 // Types for select options
@@ -78,36 +61,42 @@ export function FeedstockForm({
   storageLocations = [],
   defaultFacilityId,
 }: FeedstockFormProps) {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [photos, setPhotos] = React.useState<File[]>([]);
 
-  const form = useForm({
+  const form = useAppForm({
     defaultValues: {
       facilityId: defaultFacilityId ?? "",
-      collectionDate: new Date(),
-      supplierId: "",
-      driverId: "",
-      vehicleType: "",
+      collectionDate: new Date() as Date | undefined,
+      supplierId: "" as string | undefined,
+      driverId: "" as string | undefined,
+      vehicleType: "" as string | undefined,
       fuelConsumedLiters: undefined as number | undefined,
-      feedstockTypeId: "",
+      feedstockTypeId: "" as string | undefined,
       weightKg: undefined as number | undefined,
       moisturePercent: undefined as number | undefined,
-      storageLocationId: "",
-      notes: "",
+      storageLocationId: "" as string | undefined,
+      notes: "" as string | undefined,
     },
     onSubmit: async ({ value }) => {
-      setIsSubmitting(true);
-      try {
-        await onSubmit({
-          ...value,
-          photos,
-        } as FeedstockFormValues);
-        onOpenChange(false);
-      } finally {
-        setIsSubmitting(false);
-      }
+      await onSubmit({
+        ...value,
+        photos,
+      } as FeedstockFormValues);
+      onOpenChange(false);
     },
   });
+
+  // Field-level validators
+  const requiredString = z.string().min(1, "Required");
+
+  // Convert options to { value, label } format
+  const facilityOptions = facilities.map((f) => ({ value: f.id, label: f.name }));
+  const supplierOptions = suppliers.map((s) => ({ value: s.id, label: s.name }));
+  const driverOptions = drivers.map((d) => ({ value: d.id, label: d.name }));
+  const feedstockTypeOptions = feedstockTypes.map((t) => ({ value: t.id, label: t.name }));
+  const feedstockStorageOptions = storageLocations
+    .filter((loc) => loc.name.toLowerCase().includes("feedstock"))
+    .map((l) => ({ value: l.id, label: l.name }));
 
   // Get supplier location for display
   const selectedSupplier = suppliers.find(
@@ -120,93 +109,44 @@ export function FeedstockForm({
       onOpenChange={onOpenChange}
       title="New Feedstock"
       onSubmit={form.handleSubmit}
-      isSubmitting={isSubmitting}
+      isSubmitting={form.state.isSubmitting}
     >
       {/* Header */}
       <FormHeader title="New Feedstock" />
 
       {/* Delivery Information */}
       <FormSection title="Delivery Information">
-        {/* Facility */}
-        <form.Field name="facilityId">
+        <form.AppField
+          name="facilityId"
+          validators={{ onBlur: requiredString }}
+        >
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Facility</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select facility" />
-                </SelectTrigger>
-                <SelectContent>
-                  {facilities.map((facility) => (
-                    <SelectItem key={facility.id} value={facility.id}>
-                      {facility.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Facility"
+              placeholder="Select facility"
+              options={facilityOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Collection Date */}
-        <form.Field name="collectionDate">
+        <form.AppField name="collectionDate">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Collection Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !field.state.value && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.state.value
-                      ? format(field.state.value, "PPP")
-                      : "Today"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.state.value}
-                    onSelect={(date) => field.handleChange(date ?? new Date())}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <field.DatePickerField
+              label="Collection Date"
+              placeholder="Select date"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Supplier */}
-        <form.Field name="supplierId">
+        <form.AppField name="supplierId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Supplier</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((supplier) => (
-                    <SelectItem key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Supplier"
+              placeholder="Select supplier"
+              options={supplierOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
         {/* Supplier Location - Read-only, based on selected supplier */}
         {selectedSupplier?.location && (
@@ -216,186 +156,90 @@ export function FeedstockForm({
           </div>
         )}
 
-        {/* Driver */}
-        <form.Field name="driverId">
+        <form.AppField name="driverId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Driver</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select driver" />
-                </SelectTrigger>
-                <SelectContent>
-                  {drivers.map((driver) => (
-                    <SelectItem key={driver.id} value={driver.id}>
-                      {driver.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Driver"
+              placeholder="Select driver"
+              options={driverOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Vehicle Type */}
-        <form.Field name="vehicleType">
+        <form.AppField name="vehicleType">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Vehicle Type</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select vehicle type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {VEHICLE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Vehicle Type"
+              placeholder="Select vehicle type"
+              options={VEHICLE_TYPES}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Fuel Consumed */}
-        <form.Field name="fuelConsumedLiters">
+        <form.AppField name="fuelConsumedLiters">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Fuel Consumed (l)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter fuel consumed in l"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Fuel Consumed"
+              unit="l"
+              placeholder="Enter fuel consumed"
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
 
       {/* Feedstock Details */}
       <FormSection title="Feedstock Details">
-        {/* Feedstock Type */}
-        <form.Field name="feedstockTypeId">
+        <form.AppField name="feedstockTypeId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Feedstock Type</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select feedstock type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {feedstockTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Feedstock Type"
+              placeholder="Select feedstock type"
+              options={feedstockTypeOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Weight */}
-        <form.Field name="weightKg">
+        <form.AppField name="weightKg">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Feedstock Weight (kg)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter feedstock weight in kg"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Feedstock Weight"
+              unit="kg"
+              placeholder="Enter weight"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Moisture Content */}
-        <form.Field name="moisturePercent">
+        <form.AppField name="moisturePercent">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Moisture Content (%)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                placeholder="Enter moisture content in %"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Moisture Content"
+              unit="%"
+              placeholder="Enter moisture content"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Storage Location */}
-        <form.Field name="storageLocationId">
+        <form.AppField name="storageLocationId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Storage</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select storage" />
-                </SelectTrigger>
-                <SelectContent>
-                  {storageLocations
-                    .filter((loc) => loc.name.toLowerCase().includes("feedstock"))
-                    .map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Storage"
+              placeholder="Select storage"
+              options={feedstockStorageOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
 
       {/* Documentation */}
       <FormSection title="Documentation">
-        {/* Notes */}
-        <form.Field name="notes">
+        <form.AppField name="notes">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Notes</Label>
-              <Textarea
-                placeholder="Enter notes"
-                className="min-h-[76px] resize-none"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </div>
+            <field.TextareaField
+              label="Notes"
+              placeholder="Enter notes"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
         {/* Photos */}
         <PhotoUpload

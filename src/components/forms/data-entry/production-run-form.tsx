@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "@tanstack/react-form";
+import { useAppForm } from "@/components/forms/form-context";
 import { type ProductionRunFormValues } from "@/lib/validations/data-entry";
 import { FormSheet } from "@/components/forms/form-sheet";
 import { FormSection, FormHeader } from "@/components/forms/form-section";
@@ -15,15 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, PlusIcon, TrashIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { PlusIcon, TrashIcon } from "lucide-react";
+import { z } from "zod";
 
 // ============================================
 // Types for select options
@@ -72,44 +65,40 @@ export function ProductionRunForm({
   storageLocations = [],
   defaultFacilityId,
 }: ProductionRunFormProps) {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-
   // Separate feedstock inputs state for multi-source blending
   const [feedstockInputs, setFeedstockInputs] = React.useState<
     Array<{ storageLocationId: string; amountKg: number | undefined }>
   >([{ storageLocationId: "", amountKg: undefined }]);
 
-  const form = useForm({
+  const form = useAppForm({
     defaultValues: {
       facilityId: defaultFacilityId ?? "",
-      startTime: new Date(),
-      reactorId: "",
-      processType: "",
-      operatorId: "",
+      startTime: new Date() as Date | undefined,
+      reactorId: "" as string | undefined,
+      processType: "" as string | undefined,
+      operatorId: "" as string | undefined,
       moistureBeforeDryingPercent: undefined as number | undefined,
       moistureAfterDryingPercent: undefined as number | undefined,
       biocharAmountKg: undefined as number | undefined,
-      biocharStorageLocationId: "",
+      biocharStorageLocationId: "" as string | undefined,
       dieselOperationLiters: undefined as number | undefined,
       dieselGensetLiters: undefined as number | undefined,
       preprocessingFuelLiters: undefined as number | undefined,
       electricityKwh: undefined as number | undefined,
     },
     onSubmit: async ({ value }) => {
-      setIsSubmitting(true);
-      try {
-        await onSubmit({
-          ...value,
-          feedstockInputs: feedstockInputs.filter(
-            (f) => f.storageLocationId && f.amountKg !== undefined
-          ),
-        } as ProductionRunFormValues);
-        onOpenChange(false);
-      } finally {
-        setIsSubmitting(false);
-      }
+      await onSubmit({
+        ...value,
+        feedstockInputs: feedstockInputs.filter(
+          (f) => f.storageLocationId && f.amountKg !== undefined
+        ),
+      } as ProductionRunFormValues);
+      onOpenChange(false);
     },
   });
+
+  // Field-level validators
+  const requiredString = z.string().min(1, "Required");
 
   // Filter storage locations by type
   const feedstockStorageLocations = storageLocations.filter(
@@ -122,6 +111,12 @@ export function ProductionRunForm({
       loc.name.toLowerCase().includes("biochar") ||
       loc.name.toLowerCase().includes("pile")
   );
+
+  // Convert options to { value, label } format
+  const facilityOptions = facilities.map((f) => ({ value: f.id, label: f.name }));
+  const reactorOptions = reactors.map((r) => ({ value: r.id, label: r.code ?? r.name }));
+  const operatorOptions = operators.map((o) => ({ value: o.id, label: o.name }));
+  const biocharStorageOptions = biocharStorageLocations.map((l) => ({ value: l.id, label: l.name }));
 
   const addFeedstockInput = () => {
     setFeedstockInputs([
@@ -150,146 +145,68 @@ export function ProductionRunForm({
       onOpenChange={onOpenChange}
       title="Add Production Run"
       onSubmit={form.handleSubmit}
-      isSubmitting={isSubmitting}
+      isSubmitting={form.state.isSubmitting}
     >
       {/* Header */}
       <FormHeader title="Add Production Run" />
 
       {/* Overview */}
       <FormSection title="Overview">
-        {/* Facility */}
-        <form.Field name="facilityId">
+        <form.AppField
+          name="facilityId"
+          validators={{ onBlur: requiredString }}
+        >
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Facility</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select facility" />
-                </SelectTrigger>
-                <SelectContent>
-                  {facilities.map((facility) => (
-                    <SelectItem key={facility.id} value={facility.id}>
-                      {facility.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Facility"
+              placeholder="Select facility"
+              options={facilityOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Start Time */}
-        <form.Field name="startTime">
+        <form.AppField name="startTime">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Start Time</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !field.state.value && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.state.value
-                      ? format(field.state.value, "PPP")
-                      : "Today"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.state.value}
-                    onSelect={(date) => field.handleChange(date ?? new Date())}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <field.DateTimePickerField
+              label="Start Time"
+              placeholder="Select date and time"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Reactor */}
-        <form.Field name="reactorId">
+        <form.AppField name="reactorId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Reactor</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select reactor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {reactors.map((reactor) => (
-                    <SelectItem key={reactor.id} value={reactor.id}>
-                      {reactor.code ?? reactor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Reactor"
+              placeholder="Select reactor"
+              options={reactorOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Process Type */}
-        <form.Field name="processType">
+        <form.AppField name="processType">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Process Type</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select process type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROCESS_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Process Type"
+              placeholder="Select process type"
+              options={PROCESS_TYPES}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Operator */}
-        <form.Field name="operatorId">
+        <form.AppField name="operatorId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Operator</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select operator" />
-                </SelectTrigger>
-                <SelectContent>
-                  {operators.map((operator) => (
-                    <SelectItem key={operator.id} value={operator.id}>
-                      {operator.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Operator"
+              placeholder="Select operator"
+              options={operatorOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
 
-      {/* Feedstock Input */}
+      {/* Feedstock Input - Custom multi-source handling */}
       <FormSection title="Feedstock Input">
-        {/* Multi-source feedstock inputs */}
         {feedstockInputs.map((input, index) => (
           <div key={index} className="flex gap-4 items-end">
             <div className="flex flex-col gap-1 flex-1">
@@ -317,7 +234,7 @@ export function ProductionRunForm({
               <Input
                 type="number"
                 step="0.1"
-                placeholder="Amount in kg"
+                placeholder="Amount"
                 value={input.amountKg ?? ""}
                 onChange={(e) =>
                   updateFeedstockInput(
@@ -352,185 +269,91 @@ export function ProductionRunForm({
           Add Feedstock Source
         </Button>
 
-        {/* Moisture Before Drying */}
-        <form.Field name="moistureBeforeDryingPercent">
+        <form.AppField name="moistureBeforeDryingPercent">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">
-                Moisture before Drying (%)
-              </Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                placeholder="Enter moisture content in %"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Moisture before Drying"
+              unit="%"
+              placeholder="Enter moisture content"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Moisture After Drying */}
-        <form.Field name="moistureAfterDryingPercent">
+        <form.AppField name="moistureAfterDryingPercent">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">
-                Moisture after Drying (%)
-              </Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                placeholder="Enter moisture content in %"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Moisture after Drying"
+              unit="%"
+              placeholder="Enter moisture content"
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
 
       {/* Biochar Output */}
       <FormSection title="Biochar Output">
-        {/* Biochar Amount */}
-        <form.Field name="biocharAmountKg">
+        <form.AppField name="biocharAmountKg">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Biochar Amount (kg)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter biochar amount in kg"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Biochar Amount"
+              unit="kg"
+              placeholder="Enter biochar amount"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Biochar Storage Location */}
-        <form.Field name="biocharStorageLocationId">
+        <form.AppField name="biocharStorageLocationId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">
-                Biochar Storage Location
-              </Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select biochar storage location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {biocharStorageLocations.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Biochar Storage Location"
+              placeholder="Select storage location"
+              options={biocharStorageOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
 
       {/* Processing Parameters */}
       <FormSection title="Processing Parameter">
-        {/* Diesel Operation */}
-        <form.Field name="dieselOperationLiters">
+        <form.AppField name="dieselOperationLiters">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Diesel Operation (l)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter diesel operation in l"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Diesel Operation"
+              unit="l"
+              placeholder="Enter diesel amount"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Diesel Genset */}
-        <form.Field name="dieselGensetLiters">
+        <form.AppField name="dieselGensetLiters">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Diesel Genset (l)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter diesel genset in l"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Diesel Genset"
+              unit="l"
+              placeholder="Enter diesel amount"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Preprocessing Fuel */}
-        <form.Field name="preprocessingFuelLiters">
+        <form.AppField name="preprocessingFuelLiters">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Preprocessing Fuel (l)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter preprocessing fuel in l"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Preprocessing Fuel"
+              unit="l"
+              placeholder="Enter fuel amount"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Electricity */}
-        <form.Field name="electricityKwh">
+        <form.AppField name="electricityKwh">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Electricity (kWh)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter electricity in kWh"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Electricity"
+              unit="kWh"
+              placeholder="Enter electricity"
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
     </FormSheet>
   );

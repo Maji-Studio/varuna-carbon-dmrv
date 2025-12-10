@@ -1,31 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "@tanstack/react-form";
+import { useAppForm } from "@/components/forms/form-context";
 import { type BiocharProductFormValues } from "@/lib/validations/data-entry";
 import { FormSheet } from "@/components/forms/form-sheet";
 import { FormSection, FormHeader } from "@/components/forms/form-section";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import { z } from "zod";
 
 // ============================================
 // Types for select options
@@ -61,37 +42,35 @@ export function BiocharProductForm({
   storageLocations = [],
   defaultFacilityId,
 }: BiocharProductFormProps) {
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [photos, setPhotos] = React.useState<File[]>([]);
 
-  const form = useForm({
+  const form = useAppForm({
     defaultValues: {
       facilityId: defaultFacilityId ?? "",
-      productionDate: new Date(),
-      formulationId: "",
+      productionDate: new Date() as Date | undefined,
+      formulationId: "" as string | undefined,
       totalWeightKg: undefined as number | undefined,
       totalVolumeLiters: undefined as number | undefined,
-      storageLocationId: "",
-      biocharSourceStorageId: "",
+      storageLocationId: "" as string | undefined,
+      biocharSourceStorageId: "" as string | undefined,
       biocharAmountKg: undefined as number | undefined,
       biocharPerM3Kg: undefined as number | undefined,
       compostWeightKg: undefined as number | undefined,
       compostPerM3Kg: undefined as number | undefined,
-      notes: "",
+      notes: "" as string | undefined,
     },
     onSubmit: async ({ value }) => {
-      setIsSubmitting(true);
-      try {
-        await onSubmit({
-          ...value,
-          photos,
-        } as BiocharProductFormValues);
-        onOpenChange(false);
-      } finally {
-        setIsSubmitting(false);
-      }
+      await onSubmit({
+        ...value,
+        photos,
+      } as BiocharProductFormValues);
+      onOpenChange(false);
     },
   });
+
+  // Field-level validators
+  const requiredString = z.string().min(1, "Required");
+  const positiveNumber = z.number().min(0, "Must be positive").optional();
 
   // Filter storage locations
   const biocharStorageLocations = storageLocations.filter(
@@ -105,291 +84,156 @@ export function BiocharProductForm({
       loc.name.toLowerCase().includes("pile")
   );
 
+  // Convert options to { value, label } format
+  const facilityOptions = facilities.map((f) => ({ value: f.id, label: f.name }));
+  const formulationOptions = formulations.map((f) => ({ value: f.id, label: f.name }));
+  const biocharStorageOptions = biocharStorageLocations.map((l) => ({ value: l.id, label: l.name }));
+  const productStorageOptions = productStorageLocations.map((l) => ({ value: l.id, label: l.name }));
+
   return (
     <FormSheet
       open={open}
       onOpenChange={onOpenChange}
       title="Add Biochar Product"
       onSubmit={form.handleSubmit}
-      isSubmitting={isSubmitting}
+      isSubmitting={form.state.isSubmitting}
     >
       {/* Header */}
       <FormHeader title="Add Biochar Product" />
 
       {/* Overview */}
       <FormSection title="Overview">
-        {/* Facility */}
-        <form.Field name="facilityId">
+        <form.AppField
+          name="facilityId"
+          validators={{
+            onBlur: requiredString,
+          }}
+        >
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Facility</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select facility" />
-                </SelectTrigger>
-                <SelectContent>
-                  {facilities.map((facility) => (
-                    <SelectItem key={facility.id} value={facility.id}>
-                      {facility.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Facility"
+              placeholder="Select facility"
+              options={facilityOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Production Date */}
-        <form.Field name="productionDate">
+        <form.AppField name="productionDate">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Production Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !field.state.value && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.state.value
-                      ? format(field.state.value, "PPP")
-                      : "Today"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.state.value}
-                    onSelect={(date) => field.handleChange(date ?? new Date())}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <field.DatePickerField
+              label="Production Date"
+              placeholder="Select date"
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
 
       {/* Formulation */}
       <FormSection title="Formulation">
-        {/* Formulation */}
-        <form.Field name="formulationId">
+        <form.AppField name="formulationId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Formulation</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select formulation" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formulations.map((formulation) => (
-                    <SelectItem key={formulation.id} value={formulation.id}>
-                      {formulation.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Formulation"
+              placeholder="Select formulation"
+              options={formulationOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Total Weight */}
-        <form.Field name="totalWeightKg">
+        <form.AppField name="totalWeightKg">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Total Weight (kg)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter total weight in kg"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Total Weight"
+              unit="kg"
+              placeholder="Enter total weight"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Total Volume */}
-        <form.Field name="totalVolumeLiters">
+        <form.AppField name="totalVolumeLiters">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Total Volume (l)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter total volume in l"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Total Volume"
+              unit="l"
+              placeholder="Enter total volume"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Storage Location */}
-        <form.Field name="storageLocationId">
+        <form.AppField name="storageLocationId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Storage Location</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select storage location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {productStorageLocations.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Storage Location"
+              placeholder="Select storage location"
+              options={productStorageOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
 
       {/* Formulation Details */}
       <FormSection title="Formulation Details">
-        {/* Biochar Source */}
-        <form.Field name="biocharSourceStorageId">
+        <form.AppField name="biocharSourceStorageId">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Biochar Source</Label>
-              <Select
-                value={field.state.value}
-                onValueChange={field.handleChange}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select biochar source" />
-                </SelectTrigger>
-                <SelectContent>
-                  {biocharStorageLocations.map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <field.SelectField
+              label="Biochar Source"
+              placeholder="Select biochar source"
+              options={biocharStorageOptions}
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Biochar Amount */}
-        <form.Field name="biocharAmountKg">
+        <form.AppField name="biocharAmountKg">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Biochar Amount (kg)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter biochar amount in kg"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Biochar Amount"
+              unit="kg"
+              placeholder="Enter biochar amount"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Biochar per m³ */}
-        <form.Field name="biocharPerM3Kg">
+        <form.AppField name="biocharPerM3Kg">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Biochar per m³</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter biochar per m³"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Biochar per m³"
+              unit="kg"
+              placeholder="Enter biochar per m³"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Compost Amount */}
-        <form.Field name="compostWeightKg">
+        <form.AppField name="compostWeightKg">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Compost Amount (kg)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter compost amount in kg"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Compost Amount"
+              unit="kg"
+              placeholder="Enter compost amount"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
-        {/* Compost per m³ */}
-        <form.Field name="compostPerM3Kg">
+        <form.AppField name="compostPerM3Kg">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Compost per m³</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Enter compost per m³"
-                value={field.state.value ?? ""}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === "" ? undefined : parseFloat(e.target.value)
-                  )
-                }
-              />
-            </div>
+            <field.NumberField
+              label="Compost per m³"
+              unit="kg"
+              placeholder="Enter compost per m³"
+            />
           )}
-        </form.Field>
+        </form.AppField>
       </FormSection>
 
       {/* Documentation */}
       <FormSection title="Documentation">
-        {/* Notes */}
-        <form.Field name="notes">
+        <form.AppField name="notes">
           {(field) => (
-            <div className="flex flex-col gap-1">
-              <Label className="text-sm font-medium">Notes</Label>
-              <Textarea
-                placeholder="Enter notes"
-                className="min-h-[76px] resize-none"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-              />
-            </div>
+            <field.TextareaField
+              label="Notes"
+              placeholder="Enter notes"
+            />
           )}
-        </form.Field>
+        </form.AppField>
 
         {/* Photos/Videos */}
         <PhotoUpload

@@ -115,27 +115,32 @@ export type IncidentFormValues = z.infer<typeof incidentFormSchema>;
 // Biochar Product Form Schema
 // ============================================
 
+// Schema for form field validation (without photos, which are handled separately)
 export const biocharProductFormSchema = z.object({
   // Overview
-  facilityId: z.string().uuid("Please select a facility"),
+  facilityId: z.string().min(1, "Please select a facility"),
   productionDate: z.date().optional(),
 
   // Formulation
-  formulationId: z.string().uuid().optional(),
-  totalWeightKg: z.number().min(0).optional(),
-  totalVolumeLiters: z.number().min(0).optional(),
-  storageLocationId: z.string().uuid().optional(),
+  formulationId: z.string().optional(),
+  totalWeightKg: z.number().min(0, "Must be positive").optional(),
+  totalVolumeLiters: z.number().min(0, "Must be positive").optional(),
+  storageLocationId: z.string().optional(),
 
   // Formulation Details
-  biocharSourceStorageId: z.string().uuid().optional(),
-  biocharAmountKg: z.number().min(0).optional(),
-  biocharPerM3Kg: z.number().min(0).optional(),
-  compostWeightKg: z.number().min(0).optional(),
-  compostPerM3Kg: z.number().min(0).optional(),
+  biocharSourceStorageId: z.string().optional(),
+  biocharAmountKg: z.number().min(0, "Must be positive").optional(),
+  biocharPerM3Kg: z.number().min(0, "Must be positive").optional(),
+  compostWeightKg: z.number().min(0, "Must be positive").optional(),
+  compostPerM3Kg: z.number().min(0, "Must be positive").optional(),
 
   // Documentation
   notes: z.string().optional(),
+});
+
+// Full schema including photos for submission
+export const biocharProductSubmitSchema = biocharProductFormSchema.extend({
   photos: z.array(z.instanceof(File)).optional(),
 });
 
-export type BiocharProductFormValues = z.infer<typeof biocharProductFormSchema>;
+export type BiocharProductFormValues = z.infer<typeof biocharProductSubmitSchema>;
