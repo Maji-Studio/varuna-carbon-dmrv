@@ -3,6 +3,8 @@ import { getFormOptions } from "../../actions";
 import { getFeedstockDelivery } from "../actions";
 import { FeedstockDeliveryForm } from "../feedstock-delivery-form";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

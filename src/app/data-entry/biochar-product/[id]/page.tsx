@@ -4,6 +4,8 @@ import { getBiocharProduct } from "../actions";
 import { getBiocharProductOptions } from "../options";
 import { BiocharProductForm } from "../biochar-product-form";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

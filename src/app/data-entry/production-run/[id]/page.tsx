@@ -3,6 +3,8 @@ import { getFormOptions } from "../../actions";
 import { getProductionRun } from "../actions";
 import { ProductionRunForm } from "../production-run-form";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }
