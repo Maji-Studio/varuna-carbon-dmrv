@@ -101,56 +101,95 @@ export const documents = pgTable("documents", {
 
 ---
 
-## Completed
+## Completed (Dec 2024)
 
-- [x] All 5 data entry forms built
+- [x] All 5 data entry page routes created (`/data-entry/*`)
+- [x] Data entry hub page with incomplete entries query
 - [x] Form validation schemas created (`src/lib/validations/data-entry.ts`)
 - [x] Base form components (FormSheet, FormSection, PhotoUpload, etc.)
+- [x] Page-based form components using TanStack Form + `useAppForm`
+- [x] Server actions for create/update operations
+- [x] Auto-generated codes (FS-2025-001, PR-2025-001, BP-2025-001)
+- [x] Edit pages for incomplete feedstock and production run entries
 - [x] TypeScript errors resolved
+
+### Workarounds Applied
+
+| Issue | Workaround |
+|-------|------------|
+| Sampling/Incident missing `facilityId` | Form uses Production Run dropdown instead; facility derived from PR |
+| Feedstock missing `notes` | Field rendered but not persisted to DB |
+| Multi-feedstock inputs | First source stored in `feedstockStorageLocationId`, total in `feedstockAmountKg`, description in `feedstockMix` |
 
 ---
 
 ## File References
 
+### Page-Based Forms (New)
+- Hub: `src/app/data-entry/page.tsx`
+- Feedstock: `src/app/data-entry/feedstock/`
+- Production Run: `src/app/data-entry/production-run/`
+- Sampling: `src/app/data-entry/sampling/`
+- Incident: `src/app/data-entry/incident/`
+- Biochar Product: `src/app/data-entry/biochar-product/`
+
+### Sheet-Based Forms (Legacy)
 - Forms: `src/components/forms/data-entry/`
-- Schemas: `src/db/schema/feedstock.ts`, `production.ts`, `products.ts`
-- Validations: `src/lib/validations/data-entry.ts`
 
-The review of your current implementation for mobile-data-input reveals several critical issues when compared to TanStack Form best practices.
-Critique Summary
-The current implementation is incomplete and disconnected. You have set up the infrastructure for a powerful, reusable form system (form-context.tsx, form-field.tsx), but the actual form (BiocharProductForm) ignores it entirely, resulting in verbose boilerplate, missing validation, and broken abstractions.
-Key Issues Identified
+### Database Schemas
+- `src/db/schema/feedstock.ts`
+- `src/db/schema/production.ts`
+- `src/db/schema/products.ts`
 
-1. Validation is Missing (Critical)
-   Although you defined Zod schemas in src/lib/validations/data-entry.ts, they are not connected to the form. The useForm hook in BiocharProductForm does not pass a validators or validatorAdapter prop.
-   Consequence: Users can submit empty or invalid data. The Zod schemas are currently just unused code.
-   Fix: You need to use the zodValidator and pass the schema to useForm.
-2. Ignoring Custom Infrastructure
-   You created useAppForm, useFieldContext, and useFormContext in src/components/forms/form-context.tsx, which is the correct way to set up TanStack Form for Type Safety and Context injection.
-   The Mistake: BiocharProductForm imports the raw useForm from @tanstack/react-form instead of your custom useAppForm.
-   Consequence: The reusable components in src/components/forms/form-field.tsx (like TextField, NumberField) will crash or fail because they try to consume a useFieldContext that doesn't exist. This explains why your form implementation manually rewrites the form.Field render prop every time instead of using your nice components.
-3. Redundant State Management
-   You are manually managing isSubmitting state:
-   biochar-product-form.tsxLines 4-6
-   Apply to biochar-prod...
-   const [isSubmitting, setIsSubmitting] = React.useState(false); // ❌ Unnecessary
-   Better Way: TanStack Form tracks this automatically. You should use form.state.isSubmitting.
-4. Verbose & Repetitive Code
-   Because you aren't using your reusable TextField / NumberField components, BiocharProductForm is over 400 lines long, filled with repetitive boilerplate like this:
-   <form.Field name="facilityId"> {(field) => ( <div className="flex flex-col gap-1"> <Label...> <Select...> {/_ Manual error handling... _/} </div> )}</form.Field>
-   Using your SelectField component would reduce this to 1 line.
-   Recommendations
-   Switch to useAppForm: Update the form to use your custom hook.
-   Hook up Validation: Pass the Zod validator to the form.
-   Refactor to use Reusable Fields: Replace the manual <form.Field> render props with your <TextField>, <SelectField>, etc.
-   Refactored Example
-   Here is how BiocharProductForm should look to fix these issues:
-   "use client";import _ as React from "react";import { useAppForm } from "@/components/forms/form-context"; // ✅ Use custom hookimport { biocharProductFormSchema, type BiocharProductFormValues } from "@/lib/validations/data-entry";import { zodValidator } from "@tanstack/zod-form-adapter";import { FormSheet } from "@/components/forms/form-sheet";import { FormSection, FormHeader } from "@/components/forms/form-section";import { SelectField, TextField, NumberField, TextareaField } from "@/components/forms/form-field"; // ✅ Use reusable components// ... types ...export function BiocharProductForm({ open, onOpenChange, onSubmit, facilities = [], // ... other props}: BiocharProductFormProps) { // ✅ No local isSubmitting state needed const form = useAppForm({ defaultValues: { facilityId: "", // ... }, validatorAdapter: zodValidator(), // ✅ Connect Zod validators: { onChange: biocharProductFormSchema, // or onSubmit }, onSubmit: async ({ value }) => { // ✅ value is now fully typed and validated await onSubmit(value as BiocharProductFormValues); onOpenChange(false); }, }); return ( <FormSheet open={open} onOpenChange={onOpenChange} title="Add Biochar Product" onSubmit={form.handleSubmit} isSubmitting={form.state.isSubmitting} // ✅ Use built-in state > <FormHeader title="Add Biochar Product" /> <FormSection title="Overview"> {/_ ✅ Much cleaner implementation _/} <form.Field name="facilityId" children={(field) => ( <SelectField label="Facility" options={facilities.map(f => ({ value: f.id, label: f.name }))} // You might need to adjust SelectField to accept the field API or name // OR better yet, update SelectField to take 'name' and use useFieldContext internally /> )} /> {/_ If your TextField handles the field context internally: _/} <form.Field name="totalWeightKg"> {/_ You need to ensure your reusable components align with how you call them. If TextField uses useFieldContext, it must be rendered INSIDE a context provider OR the createFormHook's Field component automatically provides it? Actually, standard TanStack Form Field does NOT provide context automatically to children. You usually pass the 'field' object to your component, OR use a custom Field component. _/} </form.Field> </FormSection> {/_ ... \*/} </FormSheet> );}
-   Correction on form-field.tsx:
-   Your TextField uses useFieldContext. For this to work, you must usage the Field component exported from useAppForm AND likely pass your component to the component prop of the Field, or ensure the Field provides context.
-   Current createFormHook behavior: The Field component returned by createFormHook supports a component prop which does receive the context, but if you just render children, they don't magically get context unless Field wraps them in a Provider.
-   Verification: Check form-context.tsx. createFormHookContexts creates a React Context. createFormHook uses that context.
-   The Pattern: You should likely use:
-   <form.Field name="myField" component={TextField} props={{ label: "My Label" }} // Props passed to your component />
-   This way, TextField is rendered by the Field
-   , and useFieldContext inside it will work.
+### Validations
+- `src/lib/validations/data-entry.ts`
+
+---
+
+## Historical Notes
+
+### Previous TanStack Form Issues (Resolved)
+
+The legacy sheet-based forms (`src/components/forms/data-entry/*.tsx`) had issues with TanStack Form integration. The new page-based forms in `src/app/data-entry/` correctly use:
+
+- `useAppForm` hook from `form-context.tsx`
+- `form.AppField` component for field rendering
+- `form.state.isSubmitting` for submit state
+- Reusable field components (`SelectField`, `NumberField`, `DatePickerField`, etc.)
+
+**Pattern used in new forms:**
+```tsx
+const form = useAppForm({
+  defaultValues: { ... },
+  onSubmit: async ({ value }) => {
+    await createRecord(value);
+    router.push("/data-entry");
+  },
+});
+
+// Using AppField for proper context injection
+<form.AppField name="facilityId">
+  {(field) => (
+    <field.SelectField
+      label="Facility"
+      options={facilityOptions}
+    />
+  )}
+</form.AppField>
+```
+
+### Remaining Validation TODO
+
+The page-based forms do not yet connect Zod validation schemas at the form level. Currently only field-level validators are used. To add form-level Zod validation:
+
+```tsx
+import { zodValidator } from "@tanstack/zod-form-adapter";
+
+const form = useAppForm({
+  validatorAdapter: zodValidator(),
+  validators: {
+    onChange: feedstockFormSchema,
+  },
+  // ...
+});
+```
