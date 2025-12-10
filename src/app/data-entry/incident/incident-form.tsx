@@ -45,7 +45,7 @@ export function IncidentForm({
   const router = useRouter();
   const isEdit = mode === "edit";
   const [photos, setPhotos] = React.useState<File[]>([]);
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isPending, startTransition] = React.useTransition();
 
   const form = useAppForm({
     defaultValues: {
@@ -74,23 +74,27 @@ export function IncidentForm({
             ? "Draft updated"
             : "Draft saved"
       );
-      router.refresh();
       router.push("/data-entry");
     },
   });
 
+  const handleSubmit = () => {
+    startTransition(() => {
+      form.handleSubmit();
+    });
+  };
+
   const handleDelete = async () => {
     if (!initialData?.id) return;
-    setIsDeleting(true);
-    const result = await deleteIncident(initialData.id);
-    if (!result.success) {
-      toast.error(result.error);
-      setIsDeleting(false);
-      return;
-    }
-    toast.success("Incident report deleted");
-    router.refresh();
-    router.push("/data-entry");
+    startTransition(async () => {
+      const result = await deleteIncident(initialData.id);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Incident report deleted");
+      router.push("/data-entry");
+    });
   };
 
   // Memoized options
@@ -115,10 +119,10 @@ export function IncidentForm({
         return (
           <FormPageLayout
             title={isEdit ? "Edit Incident Report" : "New Incident Report"}
-            onSubmit={form.handleSubmit}
+            onSubmit={handleSubmit}
             onDelete={isEdit ? handleDelete : undefined}
-            isSubmitting={form.state.isSubmitting}
-            isDeleting={isDeleting}
+            isSubmitting={isPending}
+            isDeleting={isPending}
             hasDraft={isEdit}
             isComplete={isComplete}
           >

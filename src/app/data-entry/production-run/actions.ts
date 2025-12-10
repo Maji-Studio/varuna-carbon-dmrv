@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { productionRuns } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, refresh } from "next/cache";
 import { type ProductionRunFormValues } from "@/lib/validations/data-entry";
 import { isProductionRunComplete } from "@/lib/validations/completion";
 import { toUuidOrNull, toDateString, processFeedstockInputs } from "@/lib/form-utils";
@@ -57,6 +57,7 @@ export async function createProductionRun(values: ProductionRunFormValues): Prom
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/production-run");
+    refresh();
 
     return { success: true as const, data: { id: result[0].id } };
   } catch (error) {
@@ -107,6 +108,7 @@ export async function updateProductionRun(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/production-run");
+    refresh();
 
     return { success: true as const, data: { id } };
   } catch (error) {
@@ -137,6 +139,7 @@ export async function deleteProductionRun(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/production-run");
+    refresh();
 
     return { success: true, data: undefined };
   } catch (error) {

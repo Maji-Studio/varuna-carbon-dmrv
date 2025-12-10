@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { feedstocks } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, refresh } from "next/cache";
 import { type FeedstockFormValues } from "@/lib/validations/data-entry";
 import { isFeedstockComplete } from "@/lib/validations/completion";
 import { toUuidOrNull, toDateString } from "@/lib/form-utils";
@@ -49,6 +49,7 @@ export async function createFeedstock(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/feedstock");
+    refresh();
 
     return { success: true as const, data: { id: result[0].id } };
   } catch (error) {
@@ -83,6 +84,7 @@ export async function updateFeedstock(id: string, values: Omit<FeedstockFormValu
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/feedstock");
+    refresh();
 
     return { success: true as const, data: { id } };
   } catch (error) {
@@ -112,6 +114,7 @@ export async function deleteFeedstock(id: string): Promise<ActionResult<void>> {
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/feedstock");
+    refresh();
 
     return { success: true, data: undefined };
   } catch (error) {

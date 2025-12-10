@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { feedstockDeliveries } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, refresh } from "next/cache";
 import { type FeedstockDeliveryFormValues } from "@/lib/validations/data-entry";
 import { isFeedstockDeliveryComplete } from "@/lib/validations/completion";
 import { toUuidOrNull } from "@/lib/form-utils";
@@ -49,6 +49,7 @@ export async function createFeedstockDelivery(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/feedstock-delivery");
+    refresh();
 
     return { success: true as const, data: { id: result[0].id } };
   } catch (error) {
@@ -87,6 +88,7 @@ export async function updateFeedstockDelivery(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/feedstock-delivery");
+    refresh();
 
     return { success: true as const, data: { id } };
   } catch (error) {
@@ -118,6 +120,7 @@ export async function deleteFeedstockDelivery(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/feedstock-delivery");
+    refresh();
 
     return { success: true, data: undefined };
   } catch (error) {

@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { biocharProducts } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, refresh } from "next/cache";
 import { type BiocharProductFormValues } from "@/lib/validations/data-entry";
 import { toUuidOrNull } from "@/lib/form-utils";
 import { type ActionResult } from "@/lib/types/actions";
@@ -47,6 +47,7 @@ export async function createBiocharProduct(values: Omit<BiocharProductFormValues
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/biochar-product");
+    refresh();
 
     return { success: true, data: { id: result[0].id } };
   } catch (error) {
@@ -99,6 +100,7 @@ export async function updateBiocharProduct(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/biochar-product");
+    refresh();
 
     return { success: true, data: { id } };
   } catch (error) {
@@ -115,6 +117,7 @@ export async function deleteBiocharProduct(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/biochar-product");
+    refresh();
 
     return { success: true, data: undefined };
   } catch (error) {

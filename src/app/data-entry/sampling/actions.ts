@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { samples } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, refresh } from "next/cache";
 import { toUuidOrNull } from "@/lib/form-utils";
 import { getProductionRunsForDropdown } from "@/lib/actions/utils";
 import { type ActionResult } from "@/lib/types/actions";
@@ -47,6 +47,7 @@ export async function createSample(values: CreateSampleValues): Promise<ActionRe
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/sampling");
+    refresh();
 
     return { success: true, data: { id: result[0].id } };
   } catch (error) {
@@ -102,6 +103,7 @@ export async function updateSample(
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/sampling");
+    refresh();
 
     return { success: true, data: { id } };
   } catch (error) {
@@ -116,6 +118,7 @@ export async function deleteSample(id: string): Promise<ActionResult<void>> {
 
     revalidatePath("/data-entry");
     revalidatePath("/data-entry/sampling");
+    refresh();
 
     return { success: true, data: undefined };
   } catch (error) {
