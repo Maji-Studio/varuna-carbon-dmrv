@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "license": "MIT",
   "scripts": {
-    "dev": "pnpm docker:up && pnpm db:wait && pnpm db:push && pnpm db:seed && next dev",
-    "dev:quick": "pnpm docker:up && pnpm db:wait && pnpm db:push && next dev",
-    "dev:next": "next dev",
+    "dev": "pnpm docker:up && pnpm db:wait && pnpm db:push && next dev",
+    "seed": "pnpm docker:up && pnpm db:wait && pnpm db:push && pnpm db:seed",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

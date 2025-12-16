@@ -41,6 +41,7 @@ export const documents = pgTable("documents", {
 **Decision**: Use JSON in `feedstockMix` field (simpler approach).
 
 **Implementation**: Production run actions now store feedstock inputs as JSON:
+
 ```typescript
 feedstockMix: JSON.stringify([
   { storageLocationId: "uuid", amountKg: 150 },
@@ -94,7 +95,7 @@ The first feedstock source is also stored in `feedstockStorageLocationId` for ba
 ## Completed (Dec 10, 2025) - Form UX Improvements
 
 - [x] **Toast notifications** for form errors using sonner (`src/components/ui/sonner.tsx`)
-- [x] **Required field indicators** - asterisk (*) shown for required fields in all forms
+- [x] **Required field indicators** - asterisk (\*) shown for required fields in all forms
 - [x] **Last edited timestamps** - incomplete entries show relative time ("Edited 2h ago")
 - [x] **Smart "Show All (X)" button** - only visible when >5 incomplete entries
 - [x] **Entries sorted by most recently edited** - uses `updatedAt` for sorting
@@ -103,18 +104,19 @@ The first feedstock source is also stored in `feedstockStorageLocationId` for ba
 
 ### Workarounds Applied
 
-| Issue | Workaround |
-|-------|------------|
-| Sampling/Incident missing `facilityId` | Form uses Production Run dropdown instead; facility derived from PR |
-| ~~Feedstock missing `notes`~~ | ✅ Fixed - notes field added to schema |
-| Multi-feedstock inputs | JSON stored in `feedstockMix`, first source in `feedstockStorageLocationId` |
-| Photo uploads | UI shown but not persisted (documents table pending) |
+| Issue                                  | Workaround                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------- |
+| Sampling/Incident missing `facilityId` | Form uses Production Run dropdown instead; facility derived from PR         |
+| ~~Feedstock missing `notes`~~          | ✅ Fixed - notes field added to schema                                      |
+| Multi-feedstock inputs                 | JSON stored in `feedstockMix`, first source in `feedstockStorageLocationId` |
+| Photo uploads                          | UI shown but not persisted (documents table pending)                        |
 
 ---
 
 ## File References
 
 ### Page-Based Forms (Primary)
+
 - Hub: `src/app/data-entry/page.tsx`
 - Feedstock: `src/app/data-entry/feedstock/`
 - Production Run: `src/app/data-entry/production-run/`
@@ -123,20 +125,24 @@ The first feedstock source is also stored in `feedstockStorageLocationId` for ba
 - Biochar Product: `src/app/data-entry/biochar-product/`
 
 ### Form Components
+
 - Field components: `src/components/forms/form-field.tsx` (with required indicator support)
 - Toast: `src/components/ui/sonner.tsx`
 - Incomplete entries list: `src/components/data-entry/incomplete-entries-section.tsx`
 - Relative time helper: `src/lib/utils.ts` (`formatRelativeTime`)
 
 ### ~~Sheet-Based Forms (Legacy)~~ DELETED
+
 - ~~Forms: `src/components/forms/data-entry/`~~ - Removed to reduce duplication
 
 ### Database Schemas
+
 - `src/db/schema/feedstock.ts`
 - `src/db/schema/production.ts`
 - `src/db/schema/products.ts`
 
 ### Validations
+
 - `src/lib/validations/data-entry.ts`
 
 ---
@@ -153,6 +159,7 @@ The page-based forms in `src/app/data-entry/` use:
 - Reusable field components (`SelectField`, `NumberField`, `DatePickerField`, etc.)
 
 **Pattern:**
+
 ```tsx
 const form = useAppForm({
   defaultValues: { ... },
@@ -183,6 +190,22 @@ const form = useAppForm({
 
 - Photo uploads not persisted (documents table pending)
 - Form-level Zod validation not yet connected (only field-level validators used; server-side validation with toast errors now working)
+- Clarify how the distance is automatically calculated, as drivers can have different routes.
+
+### Configurable Fuel Consumption Factors
+
+Currently hardcoded in `src/lib/constants/transport.ts`:
+
+- truck: 0.30 L/km
+- pickup: 0.15 L/km
+- tractor: 0.25 L/km
+
+**Future improvements:**
+
+1. Add admin-configurable fuel factors table in database
+2. Allow per-facility overrides
+3. Support different factors by vehicle age/model
+4. Integration with emission factor databases
 
 ---
 
@@ -190,13 +213,14 @@ const form = useAppForm({
 
 ### Fixed - Critical Issues
 
-| Issue | Status | Fix |
-|-------|--------|-----|
-| Missing error handling on DB operations | ✅ Fixed | Added try-catch to all action functions |
-| Biochar form notes bug | ✅ Fixed | Changed `notes: ""` → `notes: initialData?.notes ?? ""` |
-| Buggy inline completion logic | ✅ Fixed | Now using `isFeedstockComplete()` etc. from completion.ts |
+| Issue                                   | Status   | Fix                                                       |
+| --------------------------------------- | -------- | --------------------------------------------------------- |
+| Missing error handling on DB operations | ✅ Fixed | Added try-catch to all action functions                   |
+| Biochar form notes bug                  | ✅ Fixed | Changed `notes: ""` → `notes: initialData?.notes ?? ""`   |
+| Buggy inline completion logic           | ✅ Fixed | Now using `isFeedstockComplete()` etc. from completion.ts |
 
 **Details on completion logic bug:**
+
 ```typescript
 // BEFORE (buggy) - 0 is falsy, so weightKg=0 would fail
 const hasRequiredFields = values.weightKg && values.moisturePercent;
@@ -208,41 +232,54 @@ const status = isFeedstockComplete(values) ? "complete" : "missing_data";
 ### Known Issues - Not Yet Fixed
 
 #### 1. Re-export pattern broken in "use server" files
+
 **Files:** `sampling/actions.ts`, `incident/actions.ts`
 **Symptom:** Build fails with "Export doesn't exist in target module"
+
 ```typescript
 // This pattern doesn't work in "use server" files with Turbopack
 export { getProductionRunsForDropdown as getProductionRunsForSampling } from "@/lib/actions/utils";
 ```
+
 **Fix:** Move the function into each file or restructure imports.
 
 #### 2. PhotoUpload state never used (memory leak risk)
+
 **Files:** All 6 form components
+
 ```typescript
 const [photos, setPhotos] = React.useState<File[]>([]); // Created but never sent to server
 ```
+
 **Fix:** Either integrate with document upload or remove the state.
 
 #### 3. Zod schemas defined but never validated at runtime
+
 **File:** `src/lib/validations/data-entry.ts`
+
 - 6 Zod schemas exist but `.parse()` / `.safeParse()` never called
 - Currently only used as TypeScript types
-**Impact:** Invalid data could be saved to database
+  **Impact:** Invalid data could be saved to database
 
 #### 4. Unused completion functions (orphaned code)
+
 **File:** `src/lib/validations/completion.ts`
+
 - `isSamplingComplete()` - never called
 - `isIncidentComplete()` - never called
 - `isBiocharProductComplete()` - only called in form, not in actions
 
 #### 5. Code duplication (not critical but technical debt)
+
 - Code generation function duplicated 4x (~80 lines)
 - Delete handler duplicated 6x in form components
 - Option conversion (`map(f => ({value: f.id, label: f.name}))`) duplicated 6x
 - Revalidation pattern (`revalidatePath`) repeated 30+ times
 
 #### 6. Production run has dual state for feedstock inputs
+
 **File:** `production-run-form.tsx`
+
 - TanStack Form state has `feedstockAmountKg`
 - Separate React state has `feedstockInputs` array
 - Two sources of truth - could cause sync issues

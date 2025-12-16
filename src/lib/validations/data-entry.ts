@@ -34,9 +34,16 @@ export const feedstockDeliveryFormSchema = z.object({
   // Delivery Details
   supplierId: z.string().uuid().optional(),
   driverId: z.string().uuid().optional(),
-  vehicleType: z.string().optional(),
-  fuelType: z.string().optional(),
+  vehicleId: z.string().uuid().optional(), // Reference to vehicles table
+  vehicleType: z.string().optional(), // Legacy: kept for backwards compatibility
+  fuelType: z.string().optional(), // Legacy: kept for backwards compatibility (or auto-derived from vehicle)
+  distanceKm: z.number().min(0).optional(), // Can be auto-calculated or manually entered
   fuelConsumedLiters: z.number().min(0).optional(),
+
+  // Feedstock Details
+  feedstockTypeId: z.string().uuid().optional(),
+  weightKg: z.number().min(0).optional(),
+  moisturePercent: z.number().min(0).max(100).optional(),
 
   // Documentation
   notes: z.string().optional(),
@@ -48,6 +55,37 @@ export type FeedstockDeliveryFormValues = z.infer<
 >;
 
 // ============================================
+// Combined Feedstock Form Schema (Delivery + Inventory)
+// ============================================
+
+export const combinedFeedstockFormSchema = z.object({
+  // --- Delivery Information ---
+  facilityId: z.string().uuid("Please select a facility"),
+  deliveryDate: z.date().optional(),
+  supplierId: z.string().uuid().optional(),
+  driverId: z.string().uuid().optional(),
+  vehicleId: z.string().uuid().optional(), // Reference to vehicles table
+  vehicleType: z.string().optional(), // Legacy: kept for backwards compatibility
+  fuelType: z.string().optional(), // Legacy: kept for backwards compatibility
+  distanceKm: z.number().min(0).optional(),
+  fuelConsumedLiters: z.number().min(0).optional(),
+
+  // --- Feedstock Details ---
+  feedstockTypeId: z.string().uuid().optional(),
+  weightKg: z.number().min(0).optional(),
+  moisturePercent: z.number().min(0).max(100).optional(),
+  storageLocationId: z.string().uuid().optional(),
+
+  // --- Documentation ---
+  notes: z.string().optional(),
+  photos: z.array(z.instanceof(File)).optional(),
+});
+
+export type CombinedFeedstockFormValues = z.infer<
+  typeof combinedFeedstockFormSchema
+>;
+
+// ============================================
 // Production Run Form Schema
 // ============================================
 
@@ -56,7 +94,6 @@ export const productionRunFormSchema = z.object({
   facilityId: z.string().uuid("Please select a facility"),
   startTime: z.date().optional(),
   reactorId: z.string().uuid().optional(),
-  processType: z.string().optional(),
   operatorId: z.string().uuid().optional(),
 
   // Feedstock Input
@@ -75,6 +112,10 @@ export const productionRunFormSchema = z.object({
 
   // Biochar Output
   biocharAmountKg: z.number().min(0).optional(),
+  biocharDryWeightKg: z.number().min(0).optional(),
+  biocharWetWeightKg: z.number().min(0).optional(),
+  biocharDryMoisturePercent: z.number().min(0).max(100).optional(),
+  uncarbonizedBiocharKg: z.number().min(0).optional(),
   biocharStorageLocationId: z.string().uuid().optional(),
 
   // Processing Parameters
@@ -82,6 +123,9 @@ export const productionRunFormSchema = z.object({
   dieselGensetLiters: z.number().min(0).optional(),
   preprocessingFuelLiters: z.number().min(0).optional(),
   electricityKwh: z.number().min(0).optional(),
+
+  // Processing Data
+  plcDataFile: z.instanceof(File).optional(),
 });
 
 export type ProductionRunFormValues = z.infer<typeof productionRunFormSchema>;

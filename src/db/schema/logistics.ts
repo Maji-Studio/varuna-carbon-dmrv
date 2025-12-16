@@ -13,6 +13,19 @@ import { customers, drivers } from './parties';
 import { formulations, biocharProducts } from './products';
 
 // ============================================
+// Vehicles - Transport vehicles with fuel configuration
+// ============================================
+
+export const vehicles = pgTable('vehicles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(), // e.g., "Truck 1", "Truck 2", "Truck 3"
+  fuelType: text('fuel_type').notNull(), // e.g., "Diesel"
+  fuelConsumptionLPerKm: real('fuel_consumption_l_per_km').notNull(), // e.g., 0.3 L/km
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// ============================================
 // Orders - Customer orders for biochar products
 // ============================================
 

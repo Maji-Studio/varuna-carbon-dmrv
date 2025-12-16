@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm';
 import { feedstockStatus } from './common';
 import { facilities, storageLocations } from './facilities';
 import { suppliers, drivers } from './parties';
+import { vehicles } from './logistics';
 
 // ============================================
 // Feedstock Deliveries - Incoming biomass shipments
@@ -21,11 +22,18 @@ export const feedstockDeliveries = pgTable('feedstock_deliveries', {
   deliveryDate: timestamp('delivery_date'),
   supplierId: uuid('supplier_id').references(() => suppliers.id),
   driverId: uuid('driver_id').references(() => drivers.id),
-  vehicleType: text('vehicle_type'),
-  fuelType: text('fuel_type'),
+  vehicleId: uuid('vehicle_id').references(() => vehicles.id),
+  vehicleType: text('vehicle_type'), // Legacy: kept for backwards compatibility
+  fuelType: text('fuel_type'), // Legacy: kept for backwards compatibility
+  distanceKm: real('distance_km'), // Can be auto-calculated or manually entered
   fuelConsumedLiters: real('fuel_consumed_liters'),
   // Isometric: Transport emissions (calculated)
   transportEmissionsTco2e: real('transport_emissions_tco2e'),
+
+  // --- Feedstock Details ---
+  feedstockTypeId: uuid('feedstock_type_id').references(() => feedstockTypes.id),
+  weightKg: real('weight_kg'),
+  moisturePercent: real('moisture_percent'),
 
   // --- Documentation ---
   notes: text('notes'),
@@ -76,6 +84,7 @@ export const feedstocks = pgTable('feedstocks', {
   vehicleType: text('vehicle_type'),
   fuelType: text('fuel_type'), // e.g., "Diesel"
   fuelConsumedLiters: real('fuel_consumed_liters'),
+  distanceKm: real('distance_km'),
   // Isometric: Transport emissions (calculated)
   transportEmissionsTco2e: real('transport_emissions_tco2e'),
 
@@ -113,12 +122,21 @@ export const feedstockDeliveriesRelations = relations(
       fields: [feedstockDeliveries.driverId],
       references: [drivers.id],
     }),
+    vehicle: one(vehicles, {
+      fields: [feedstockDeliveries.vehicleId],
+      references: [vehicles.id],
+    }),
+    feedstockType: one(feedstockTypes, {
+      fields: [feedstockDeliveries.feedstockTypeId],
+      references: [feedstockTypes.id],
+    }),
     feedstocks: many(feedstocks),
   })
 );
 
 export const feedstockTypesRelations = relations(feedstockTypes, ({ many }) => ({
   feedstocks: many(feedstocks),
+  feedstockDeliveries: many(feedstockDeliveries),
 }));
 
 export const feedstocksRelations = relations(feedstocks, ({ one }) => ({

@@ -1,1 +1,0 @@
-ALTER TABLE "feedstocks" ADD COLUMN "notes" text;

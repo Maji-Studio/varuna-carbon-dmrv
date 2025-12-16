@@ -1,6 +1,7 @@
 import type {
   FeedstockFormValues,
   FeedstockDeliveryFormValues,
+  CombinedFeedstockFormValues,
   ProductionRunFormValues,
   SamplingFormValues,
   IncidentFormValues,
@@ -13,7 +14,17 @@ import type {
 export function isFeedstockDeliveryComplete(
   values: Partial<FeedstockDeliveryFormValues>
 ): boolean {
-  return Boolean(values.facilityId && values.supplierId && values.deliveryDate);
+  return Boolean(
+    // Delivery requirements
+    values.facilityId &&
+      values.supplierId &&
+      values.deliveryDate &&
+      // Feedstock requirements
+      values.feedstockTypeId &&
+      values.weightKg !== undefined &&
+      values.weightKg > 0 &&
+      values.moisturePercent !== undefined
+  );
 }
 
 /**
@@ -25,6 +36,26 @@ export function isFeedstockComplete(
 ): boolean {
   return Boolean(
     values.facilityId &&
+      values.feedstockTypeId &&
+      values.weightKg !== undefined &&
+      values.weightKg > 0 &&
+      values.moisturePercent !== undefined &&
+      values.storageLocationId
+  );
+}
+
+/**
+ * Check if combined feedstock form (delivery + inventory) has all required fields filled
+ */
+export function isCombinedFeedstockComplete(
+  values: Partial<CombinedFeedstockFormValues>
+): boolean {
+  return Boolean(
+    // Delivery requirements
+    values.facilityId &&
+      values.supplierId &&
+      values.deliveryDate &&
+      // Feedstock requirements
       values.feedstockTypeId &&
       values.weightKg !== undefined &&
       values.weightKg > 0 &&
