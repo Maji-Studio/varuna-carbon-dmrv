@@ -4,8 +4,8 @@ import { db } from "@/db";
 import { feedstocks } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath, refresh } from "next/cache";
-import { type FeedstockFormValues } from "@/lib/validations/data-entry";
-import { isFeedstockComplete } from "@/lib/validations/completion";
+import { type CombinedFeedstockFormValues } from "@/lib/validations/data-entry";
+import { isCombinedFeedstockComplete } from "@/lib/validations/completion";
 import { toUuidOrNull, toDateString } from "@/lib/form-utils";
 import { type ActionResult } from "@/lib/types/actions";
 
@@ -23,7 +23,7 @@ async function generateFeedstockCode(): Promise<string> {
 }
 
 export async function createFeedstock(
-  values: Omit<FeedstockFormValues, "photos">
+  values: Omit<CombinedFeedstockFormValues, "photos">
 ): Promise<ActionResult<{ id: string }>> {
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
@@ -31,14 +31,22 @@ export async function createFeedstock(
   }
 
   const code = await generateFeedstockCode();
-  const status = isFeedstockComplete(values) ? "complete" : "missing_data";
+  const status = isCombinedFeedstockComplete(values) ? "complete" : "missing_data";
 
   try {
     const result = await db.insert(feedstocks).values({
       code,
       facilityId,
-      date: toDateString(values.collectionDate),
-      collectionDate: values.collectionDate ?? null,
+      date: toDateString(values.deliveryDate),
+      // Delivery fields
+      deliveryDate: values.deliveryDate ?? null,
+      supplierId: toUuidOrNull(values.supplierId),
+      driverId: toUuidOrNull(values.driverId),
+      vehicleType: values.vehicleType || null,
+      fuelType: values.fuelType || null,
+      fuelConsumedLiters: values.fuelConsumedLiters ?? null,
+      distanceKm: values.distanceKm ?? null,
+      // Feedstock fields
       feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
       weightKg: values.weightKg ?? null,
       moisturePercent: values.moisturePercent ?? null,
@@ -58,20 +66,28 @@ export async function createFeedstock(
   }
 }
 
-export async function updateFeedstock(id: string, values: Omit<FeedstockFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
+export async function updateFeedstock(id: string, values: Omit<CombinedFeedstockFormValues, "photos">): Promise<ActionResult<{ id: string }>> {
   const facilityId = toUuidOrNull(values.facilityId);
   if (!facilityId) {
     return { success: false, error: "Facility is required" };
   }
 
-  const status = isFeedstockComplete(values) ? "complete" : "missing_data";
+  const status = isCombinedFeedstockComplete(values) ? "complete" : "missing_data";
 
   try {
     await db.update(feedstocks)
       .set({
         facilityId,
-        date: toDateString(values.collectionDate),
-        collectionDate: values.collectionDate ?? null,
+        date: toDateString(values.deliveryDate),
+        // Delivery fields
+        deliveryDate: values.deliveryDate ?? null,
+        supplierId: toUuidOrNull(values.supplierId),
+        driverId: toUuidOrNull(values.driverId),
+        vehicleType: values.vehicleType || null,
+        fuelType: values.fuelType || null,
+        fuelConsumedLiters: values.fuelConsumedLiters ?? null,
+        distanceKm: values.distanceKm ?? null,
+        // Feedstock fields
         feedstockTypeId: toUuidOrNull(values.feedstockTypeId),
         weightKg: values.weightKg ?? null,
         moisturePercent: values.moisturePercent ?? null,

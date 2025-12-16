@@ -187,6 +187,24 @@ co2_composition                # 1-minute intervals (Option 1)
 gas_flow_rate                  # 1-minute intervals (Option 1)
 ```
 
+### Production Run - Biochar Output
+
+```
+biochar_amount_kg              # Total biochar output
+biochar_dry_weight_kg          # Dry weight of biochar
+biochar_wet_weight_kg          # Wet weight of biochar
+biochar_dry_moisture_percent   # Dry moisture content
+uncarbonized_biochar_kg        # Uncarbonized biochar amount
+yield_percent                  # Calculated: (biochar/feedstock)*100
+biochar_storage_location_id    # Storage reference
+```
+
+### Production Run - Processing Data
+
+```
+plc_data_file_url              # URL to uploaded PLC CSV data file
+```
+
 ### Production Run - Energy Accounting
 
 ```

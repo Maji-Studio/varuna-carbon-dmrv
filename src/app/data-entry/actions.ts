@@ -15,6 +15,7 @@ import {
   operators,
   reactors,
   storageLocations,
+  vehicles,
 } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
@@ -40,6 +41,7 @@ export async function getIncompleteEntries(): Promise<IncompleteEntry[]> {
       where: eq(feedstockDeliveries.status, "missing_data"),
       with: {
         supplier: true,
+        feedstockType: true,
       },
       orderBy: desc(feedstockDeliveries.createdAt),
       limit: 10,
@@ -97,6 +99,9 @@ export async function getIncompleteEntries(): Promise<IncompleteEntry[]> {
       let missingCount = 0;
       if (!fd.supplierId) missingCount++;
       if (!fd.deliveryDate) missingCount++;
+      if (!fd.feedstockTypeId) missingCount++;
+      if (!fd.weightKg) missingCount++;
+      if (fd.moisturePercent === null || fd.moisturePercent === undefined) missingCount++;
 
       return {
         id: fd.id,
@@ -236,6 +241,7 @@ export async function getCompletedEntries(): Promise<IncompleteEntry[]> {
       where: eq(feedstockDeliveries.status, "complete"),
       with: {
         supplier: true,
+        feedstockType: true,
       },
       orderBy: desc(feedstockDeliveries.updatedAt),
       limit: 10,
@@ -341,6 +347,15 @@ export type SelectOption = {
   id: string;
   name: string;
   location?: string;
+  gpsLat?: number;
+  gpsLng?: number;
+};
+
+export type VehicleOption = {
+  id: string;
+  name: string;
+  fuelType: string;
+  fuelConsumptionLPerKm: number;
 };
 
 export async function getFormOptions() {
@@ -352,6 +367,7 @@ export async function getFormOptions() {
     reactorsData,
     storageLocationsData,
     feedstockTypesData,
+    vehiclesData,
   ] = await Promise.all([
     db.select().from(facilities),
     db.select().from(suppliers),
@@ -360,6 +376,7 @@ export async function getFormOptions() {
     db.select().from(reactors),
     db.select().from(storageLocations),
     db.select().from(feedstockTypes),
+    db.select().from(vehicles),
   ]);
 
   return {
@@ -367,11 +384,15 @@ export async function getFormOptions() {
       id: f.id,
       name: f.name,
       location: f.location ?? undefined,
+      gpsLat: f.gpsLat ?? undefined,
+      gpsLng: f.gpsLng ?? undefined,
     })),
     suppliers: suppliersData.map((s) => ({
       id: s.id,
       name: s.name,
       location: s.location ?? undefined,
+      gpsLat: s.gpsLat ?? undefined,
+      gpsLng: s.gpsLng ?? undefined,
     })),
     drivers: driversData.map((d) => ({
       id: d.id,
@@ -392,6 +413,12 @@ export async function getFormOptions() {
     feedstockTypes: feedstockTypesData.map((ft) => ({
       id: ft.id,
       name: ft.name,
+    })),
+    vehicles: vehiclesData.map((v) => ({
+      id: v.id,
+      name: v.name,
+      fuelType: v.fuelType,
+      fuelConsumptionLPerKm: v.fuelConsumptionLPerKm,
     })),
   };
 }
