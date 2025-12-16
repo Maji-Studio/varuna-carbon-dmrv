@@ -30,7 +30,6 @@ export const productionRuns = pgTable('production_runs', {
   startTime: timestamp('start_time'),
   endTime: timestamp('end_time'),
   reactorId: uuid('reactor_id').references(() => reactors.id),
-  processType: text('process_type'), // e.g., "Raw Biochar"
   operatorId: uuid('operator_id').references(() => operators.id),
 
   // --- Feedstock Input ---
@@ -45,6 +44,10 @@ export const productionRuns = pgTable('production_runs', {
 
   // --- Biochar Output ---
   biocharAmountKg: real('biochar_amount_kg'),
+  biocharDryWeightKg: real('biochar_dry_weight_kg'),
+  biocharWetWeightKg: real('biochar_wet_weight_kg'),
+  biocharDryMoisturePercent: real('biochar_dry_moisture_percent'),
+  uncarbonizedBiocharKg: real('uncarbonized_biochar_kg'),
   yieldPercent: real('yield_percent'), // Calculated: (biochar/feedstock)*100
   biocharStorageLocationId: uuid('biochar_storage_location_id').references(
     () => storageLocations.id
@@ -60,6 +63,9 @@ export const productionRuns = pgTable('production_runs', {
   dieselGensetLiters: real('diesel_genset_liters'),
   preprocessingFuelLiters: real('preprocessing_fuel_liters'),
   electricityKwh: real('electricity_kwh'),
+
+  // --- Processing Data ---
+  plcDataFileUrl: text('plc_data_file_url'), // URL to uploaded PLC CSV data file
 
   // --- Emissions (Isometric Protocol Section 8.6) ---
   emissionsFromFossilsKg: real('emissions_from_fossils_kg'), // Calculated

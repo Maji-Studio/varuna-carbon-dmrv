@@ -23,20 +23,35 @@ export default async function EditFeedstockDeliveryPage({ params }: PageProps) {
   return (
     <FeedstockDeliveryForm
       mode="edit"
-      options={options}
+      options={{
+        facilities: options.facilities,
+        suppliers: options.suppliers,
+        drivers: options.drivers,
+        feedstockTypes: options.feedstockTypes,
+        vehicles: options.vehicles,
+      }}
       initialData={{
         id: delivery.id,
         facilityId: delivery.facilityId,
         deliveryDate: delivery.deliveryDate,
         supplierId: delivery.supplierId,
         driverId: delivery.driverId,
+        vehicleId: delivery.vehicleId,
         vehicleType: delivery.vehicleType,
         fuelType: delivery.fuelType,
+        distanceKm: delivery.distanceKm,
         fuelConsumedLiters: delivery.fuelConsumedLiters,
+        feedstockTypeId: delivery.feedstockTypeId,
+        weightKg: delivery.weightKg,
+        moisturePercent: delivery.moisturePercent,
         notes: delivery.notes,
-        supplier: delivery.supplier
-          ? { location: delivery.supplier.location }
-          : null,
+        supplier: delivery.supplier ? { location: delivery.supplier.location } : null,
+        vehicle: delivery.vehicle ? {
+          id: delivery.vehicle.id,
+          name: delivery.vehicle.name,
+          fuelType: delivery.vehicle.fuelType,
+          fuelConsumptionLPerKm: delivery.vehicle.fuelConsumptionLPerKm,
+        } : null,
       }}
     />
   );

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, TrashIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
 import {
   createProductionRun,
   updateProductionRun,
@@ -24,30 +24,27 @@ import {
 } from "./actions";
 import type { SelectOption } from "../actions";
 
-const PROCESS_TYPES = [
-  { value: "raw_biochar", label: "Raw Biochar" },
-  { value: "activated_biochar", label: "Activated Biochar" },
-  { value: "slow_pyrolysis", label: "Slow Pyrolysis" },
-  { value: "fast_pyrolysis", label: "Fast Pyrolysis" },
-];
-
 interface ProductionRunData {
   id: string;
   facilityId: string;
   startTime: Date | null;
   endTime: Date | null;
   reactorId: string | null;
-  processType: string | null;
   operatorId: string | null;
   feedstockAmountKg: number | null;
   moistureBeforeDryingPercent: number | null;
   moistureAfterDryingPercent: number | null;
   biocharAmountKg: number | null;
+  biocharDryWeightKg: number | null;
+  biocharWetWeightKg: number | null;
+  biocharDryMoisturePercent: number | null;
+  uncarbonizedBiocharKg: number | null;
   biocharStorageLocationId: string | null;
   dieselOperationLiters: number | null;
   dieselGensetLiters: number | null;
   preprocessingFuelLiters: number | null;
   electricityKwh: number | null;
+  plcDataFileUrl: string | null;
 }
 
 interface ProductionRunFormProps {
@@ -70,6 +67,15 @@ export function ProductionRunForm({
   const isEdit = mode === "edit";
   const [isPending, startTransition] = React.useTransition();
 
+  // PLC data file state
+  const [plcDataFile, setPlcDataFile] = React.useState<File | null>(null);
+  const plcInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Pre-select first facility for create mode
+  const defaultFacilityId = isEdit
+    ? (initialData?.facilityId ?? "")
+    : (options.facilities[0]?.id ?? "");
+
   // Feedstock inputs state for multi-source blending
   const [feedstockInputs, setFeedstockInputs] = React.useState<
     Array<{ storageLocationId: string; amountKg: number | undefined }>
@@ -82,17 +88,20 @@ export function ProductionRunForm({
 
   const form = useAppForm({
     defaultValues: {
-      facilityId: initialData?.facilityId ?? "",
+      facilityId: defaultFacilityId,
       startTime: initialData?.startTime ?? new Date(),
       endTime: initialData?.endTime ?? undefined,
       reactorId: initialData?.reactorId ?? "",
-      processType: initialData?.processType ?? "",
       operatorId: initialData?.operatorId ?? "",
       moistureBeforeDryingPercent:
         initialData?.moistureBeforeDryingPercent ?? undefined,
       moistureAfterDryingPercent:
         initialData?.moistureAfterDryingPercent ?? undefined,
       biocharAmountKg: initialData?.biocharAmountKg ?? undefined,
+      biocharDryWeightKg: initialData?.biocharDryWeightKg ?? undefined,
+      biocharWetWeightKg: initialData?.biocharWetWeightKg ?? undefined,
+      biocharDryMoisturePercent: initialData?.biocharDryMoisturePercent ?? undefined,
+      uncarbonizedBiocharKg: initialData?.uncarbonizedBiocharKg ?? undefined,
       biocharStorageLocationId: initialData?.biocharStorageLocationId ?? "",
       dieselOperationLiters: initialData?.dieselOperationLiters ?? undefined,
       dieselGensetLiters: initialData?.dieselGensetLiters ?? undefined,
@@ -287,16 +296,6 @@ export function ProductionRunForm({
                 )}
               </form.AppField>
 
-              <form.AppField name="processType">
-                {(field) => (
-                  <field.SelectField
-                    label="Process Type"
-                    placeholder="Select process type"
-                    options={PROCESS_TYPES}
-                  />
-                )}
-              </form.AppField>
-
               <form.AppField name="operatorId">
                 {(field) => (
                   <field.SelectField
@@ -414,6 +413,46 @@ export function ProductionRunForm({
                 )}
               </form.AppField>
 
+              <form.AppField name="biocharDryWeightKg">
+                {(field) => (
+                  <field.NumberField
+                    label="Dry Weight"
+                    unit="kg"
+                    placeholder="Enter dry weight"
+                  />
+                )}
+              </form.AppField>
+
+              <form.AppField name="biocharWetWeightKg">
+                {(field) => (
+                  <field.NumberField
+                    label="Wet Weight"
+                    unit="kg"
+                    placeholder="Enter wet weight"
+                  />
+                )}
+              </form.AppField>
+
+              <form.AppField name="biocharDryMoisturePercent">
+                {(field) => (
+                  <field.NumberField
+                    label="Dry Moisture Content"
+                    unit="%"
+                    placeholder="Enter dry moisture content"
+                  />
+                )}
+              </form.AppField>
+
+              <form.AppField name="uncarbonizedBiocharKg">
+                {(field) => (
+                  <field.NumberField
+                    label="Uncarbonized Biochar"
+                    unit="kg"
+                    placeholder="Enter uncarbonized biochar amount"
+                  />
+                )}
+              </form.AppField>
+
               <form.AppField name="biocharStorageLocationId">
                 {(field) => (
                   <field.SelectField
@@ -466,6 +505,50 @@ export function ProductionRunForm({
                   />
                 )}
               </form.AppField>
+            </FormSection>
+
+            {/* Processing Data */}
+            <FormSection title="Processing Data">
+              <div className="flex flex-col gap-2">
+                <Label className="text-sm font-medium">PLC Data (CSV)</Label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => plcInputRef.current?.click()}
+                  >
+                    <UploadIcon className="mr-2 h-4 w-4" />
+                    {plcDataFile ? plcDataFile.name : "Upload PLC Data"}
+                  </Button>
+                  {plcDataFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPlcDataFile(null)}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <input
+                  ref={plcInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setPlcDataFile(file);
+                    e.target.value = "";
+                  }}
+                />
+                {initialData?.plcDataFileUrl && !plcDataFile && (
+                  <p className="text-xs text-muted-foreground">
+                    Current file: {initialData.plcDataFileUrl.split('/').pop()}
+                  </p>
+                )}
+              </div>
             </FormSection>
           </FormPageLayout>
         );

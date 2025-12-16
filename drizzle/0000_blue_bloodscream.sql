@@ -91,6 +91,29 @@ CREATE TABLE "suppliers" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "feedstock_deliveries" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"code" text NOT NULL,
+	"facility_id" uuid NOT NULL,
+	"status" "feedstock_status" DEFAULT 'missing_data' NOT NULL,
+	"delivery_date" timestamp,
+	"supplier_id" uuid,
+	"driver_id" uuid,
+	"vehicle_id" uuid,
+	"vehicle_type" text,
+	"fuel_type" text,
+	"distance_km" real,
+	"fuel_consumed_liters" real,
+	"transport_emissions_tco2e" real,
+	"feedstock_type_id" uuid,
+	"weight_kg" real,
+	"moisture_percent" real,
+	"notes" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "feedstock_deliveries_code_unique" UNIQUE("code")
+);
+--> statement-breakpoint
 CREATE TABLE "feedstock_types" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
@@ -106,6 +129,7 @@ CREATE TABLE "feedstocks" (
 	"facility_id" uuid NOT NULL,
 	"date" date NOT NULL,
 	"status" "feedstock_status" DEFAULT 'missing_data' NOT NULL,
+	"feedstock_delivery_id" uuid,
 	"collection_date" timestamp,
 	"delivery_date" timestamp,
 	"supplier_id" uuid,
@@ -113,11 +137,13 @@ CREATE TABLE "feedstocks" (
 	"vehicle_type" text,
 	"fuel_type" text,
 	"fuel_consumed_liters" real,
+	"distance_km" real,
 	"transport_emissions_tco2e" real,
 	"feedstock_type_id" uuid,
 	"weight_kg" real,
 	"moisture_percent" real,
 	"storage_location_id" uuid,
+	"notes" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "feedstocks_code_unique" UNIQUE("code")
@@ -157,7 +183,6 @@ CREATE TABLE "production_runs" (
 	"start_time" timestamp,
 	"end_time" timestamp,
 	"reactor_id" uuid,
-	"process_type" text,
 	"operator_id" uuid,
 	"feedstock_mix" text,
 	"feedstock_storage_location_id" uuid,
@@ -166,6 +191,10 @@ CREATE TABLE "production_runs" (
 	"moisture_before_drying_percent" real,
 	"moisture_after_drying_percent" real,
 	"biochar_amount_kg" real,
+	"biochar_dry_weight_kg" real,
+	"biochar_wet_weight_kg" real,
+	"biochar_dry_moisture_percent" real,
+	"uncarbonized_biochar_kg" real,
 	"yield_percent" real,
 	"biochar_storage_location_id" uuid,
 	"pyrolysis_temperature_c" real,
@@ -174,6 +203,7 @@ CREATE TABLE "production_runs" (
 	"diesel_genset_liters" real,
 	"preprocessing_fuel_liters" real,
 	"electricity_kwh" real,
+	"plc_data_file_url" text,
 	"emissions_from_fossils_kg" real,
 	"emissions_from_grid_kg" real,
 	"total_emissions_kg" real,
@@ -351,6 +381,16 @@ CREATE TABLE "transport_legs" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "vehicles" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
+	"fuel_type" text NOT NULL,
+	"fuel_consumption_l_per_km" real NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "vehicles_name_unique" UNIQUE("name")
+);
+--> statement-breakpoint
 CREATE TABLE "applications" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"code" text NOT NULL,
@@ -453,7 +493,13 @@ CREATE TABLE "documentation" (
 --> statement-breakpoint
 ALTER TABLE "reactors" ADD CONSTRAINT "reactors_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "storage_locations" ADD CONSTRAINT "storage_locations_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "feedstock_deliveries" ADD CONSTRAINT "feedstock_deliveries_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "feedstock_deliveries" ADD CONSTRAINT "feedstock_deliveries_supplier_id_suppliers_id_fk" FOREIGN KEY ("supplier_id") REFERENCES "public"."suppliers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "feedstock_deliveries" ADD CONSTRAINT "feedstock_deliveries_driver_id_drivers_id_fk" FOREIGN KEY ("driver_id") REFERENCES "public"."drivers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "feedstock_deliveries" ADD CONSTRAINT "feedstock_deliveries_vehicle_id_vehicles_id_fk" FOREIGN KEY ("vehicle_id") REFERENCES "public"."vehicles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "feedstock_deliveries" ADD CONSTRAINT "feedstock_deliveries_feedstock_type_id_feedstock_types_id_fk" FOREIGN KEY ("feedstock_type_id") REFERENCES "public"."feedstock_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "feedstocks" ADD CONSTRAINT "feedstocks_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "feedstocks" ADD CONSTRAINT "feedstocks_feedstock_delivery_id_feedstock_deliveries_id_fk" FOREIGN KEY ("feedstock_delivery_id") REFERENCES "public"."feedstock_deliveries"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "feedstocks" ADD CONSTRAINT "feedstocks_supplier_id_suppliers_id_fk" FOREIGN KEY ("supplier_id") REFERENCES "public"."suppliers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "feedstocks" ADD CONSTRAINT "feedstocks_driver_id_drivers_id_fk" FOREIGN KEY ("driver_id") REFERENCES "public"."drivers"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "feedstocks" ADD CONSTRAINT "feedstocks_feedstock_type_id_feedstock_types_id_fk" FOREIGN KEY ("feedstock_type_id") REFERENCES "public"."feedstock_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

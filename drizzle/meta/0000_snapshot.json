@@ -1,5 +1,5 @@
 {
-  "id": "7b5f1529-3f04-4238-ab2a-0b580d8d165c",
+  "id": "b8f89af4-466d-4842-b757-067995b8e143",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -483,6 +483,212 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.feedstock_deliveries": {
+      "name": "feedstock_deliveries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facility_id": {
+          "name": "facility_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "feedstock_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'missing_data'"
+        },
+        "delivery_date": {
+          "name": "delivery_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "supplier_id": {
+          "name": "supplier_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "driver_id": {
+          "name": "driver_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vehicle_type": {
+          "name": "vehicle_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fuel_type": {
+          "name": "fuel_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "distance_km": {
+          "name": "distance_km",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fuel_consumed_liters": {
+          "name": "fuel_consumed_liters",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transport_emissions_tco2e": {
+          "name": "transport_emissions_tco2e",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feedstock_type_id": {
+          "name": "feedstock_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weight_kg": {
+          "name": "weight_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "moisture_percent": {
+          "name": "moisture_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "feedstock_deliveries_facility_id_facilities_id_fk": {
+          "name": "feedstock_deliveries_facility_id_facilities_id_fk",
+          "tableFrom": "feedstock_deliveries",
+          "tableTo": "facilities",
+          "columnsFrom": [
+            "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feedstock_deliveries_supplier_id_suppliers_id_fk": {
+          "name": "feedstock_deliveries_supplier_id_suppliers_id_fk",
+          "tableFrom": "feedstock_deliveries",
+          "tableTo": "suppliers",
+          "columnsFrom": [
+            "supplier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feedstock_deliveries_driver_id_drivers_id_fk": {
+          "name": "feedstock_deliveries_driver_id_drivers_id_fk",
+          "tableFrom": "feedstock_deliveries",
+          "tableTo": "drivers",
+          "columnsFrom": [
+            "driver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feedstock_deliveries_vehicle_id_vehicles_id_fk": {
+          "name": "feedstock_deliveries_vehicle_id_vehicles_id_fk",
+          "tableFrom": "feedstock_deliveries",
+          "tableTo": "vehicles",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feedstock_deliveries_feedstock_type_id_feedstock_types_id_fk": {
+          "name": "feedstock_deliveries_feedstock_type_id_feedstock_types_id_fk",
+          "tableFrom": "feedstock_deliveries",
+          "tableTo": "feedstock_types",
+          "columnsFrom": [
+            "feedstock_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "feedstock_deliveries_code_unique": {
+          "name": "feedstock_deliveries_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.feedstock_types": {
       "name": "feedstock_types",
       "schema": "",
@@ -574,6 +780,12 @@
           "notNull": true,
           "default": "'missing_data'"
         },
+        "feedstock_delivery_id": {
+          "name": "feedstock_delivery_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "collection_date": {
           "name": "collection_date",
           "type": "timestamp",
@@ -616,6 +828,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "distance_km": {
+          "name": "distance_km",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
         "transport_emissions_tco2e": {
           "name": "transport_emissions_tco2e",
           "type": "real",
@@ -646,6 +864,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -669,6 +893,19 @@
           "tableTo": "facilities",
           "columnsFrom": [
             "facility_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "feedstocks_feedstock_delivery_id_feedstock_deliveries_id_fk": {
+          "name": "feedstocks_feedstock_delivery_id_feedstock_deliveries_id_fk",
+          "tableFrom": "feedstocks",
+          "tableTo": "feedstock_deliveries",
+          "columnsFrom": [
+            "feedstock_delivery_id"
           ],
           "columnsTo": [
             "id"
@@ -997,12 +1234,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "process_type": {
-          "name": "process_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "operator_id": {
           "name": "operator_id",
           "type": "uuid",
@@ -1047,6 +1278,30 @@
         },
         "biochar_amount_kg": {
           "name": "biochar_amount_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "biochar_dry_weight_kg": {
+          "name": "biochar_dry_weight_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "biochar_wet_weight_kg": {
+          "name": "biochar_wet_weight_kg",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "biochar_dry_moisture_percent": {
+          "name": "biochar_dry_moisture_percent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uncarbonized_biochar_kg": {
+          "name": "uncarbonized_biochar_kg",
           "type": "real",
           "primaryKey": false,
           "notNull": false
@@ -1096,6 +1351,12 @@
         "electricity_kwh": {
           "name": "electricity_kwh",
           "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "plc_data_file_url": {
+          "name": "plc_data_file_url",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -2442,6 +2703,66 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vehicles": {
+      "name": "vehicles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fuel_type": {
+          "name": "fuel_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fuel_consumption_l_per_km": {
+          "name": "fuel_consumption_l_per_km",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vehicles_name_unique": {
+          "name": "vehicles_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
