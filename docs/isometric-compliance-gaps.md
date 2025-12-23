@@ -38,8 +38,8 @@ Currently only `CO₂e_Stored` is calculated.
 - Track feedstock fate (decomposition, burning, etc.)
 
 **Files to modify:**
-- `src/lib/adapters/isometric/utils/counterfactual.ts` (new)
-- `src/lib/adapters/isometric/adapter.ts`
+- `src/lib/isometric/utils/counterfactual.ts` (new)
+- `src/lib/isometric/adapter.ts`
 
 **Reference:** https://registry.isometric.com/module/biomass-feedstock-accounting/1.3
 
@@ -71,8 +71,8 @@ CO₂e_Electricity = f_grid × ΣE_i
 
 **Files to modify:**
 - `src/config/emission-factors.ts` (new)
-- `src/lib/adapters/isometric/utils/emissions.ts` (new)
-- `src/lib/adapters/isometric/utils/aggregation.ts`
+- `src/lib/isometric/utils/emissions.ts` (new)
+- `src/lib/isometric/utils/aggregation.ts`
 
 **Reference:** https://registry.isometric.com/module/energy-use-accounting/1.2
 
@@ -102,7 +102,7 @@ totalDieselLiters += (run.dieselOperationLiters ?? 0) +
 ```
 
 **Files to modify:**
-- `src/lib/adapters/isometric/utils/aggregation.ts`
+- `src/lib/isometric/utils/aggregation.ts`
 
 ---
 
@@ -127,8 +127,8 @@ CO₂e_Transport = distance × mass × emission_factor
 - Include in aggregation
 
 **Files to modify:**
-- `src/lib/adapters/isometric/utils/transportation.ts` (new)
-- `src/lib/adapters/isometric/utils/aggregation.ts`
+- `src/lib/isometric/utils/transportation.ts` (new)
+- `src/lib/isometric/utils/aggregation.ts`
 
 **Reference:** https://registry.isometric.com/module/transportation/1.1
 
@@ -159,7 +159,7 @@ if (!run.samples || run.samples.length < 3) {
 ```
 
 **Files to modify:**
-- `src/lib/adapters/isometric/utils/aggregation.ts`
+- `src/lib/isometric/utils/aggregation.ts`
 
 ---
 
@@ -175,7 +175,7 @@ if (!run.samples || run.samples.length < 3) {
 - Log unmapped template inputs for visibility
 
 **Files to modify:**
-- `src/lib/adapters/isometric/transformers/removal.ts`
+- `src/lib/isometric/transformers/removal.ts`
 
 ---
 
@@ -210,7 +210,7 @@ When using Method B (sampling 1 in 10 batches), all batches must be from the sam
 - Warn/error if mixing incompatible processes
 
 **Files to modify:**
-- `src/lib/adapters/isometric/utils/aggregation.ts`
+- `src/lib/isometric/utils/aggregation.ts`
 
 ---
 
@@ -225,7 +225,7 @@ Market leakage from feedstock diversion should be tracked under `CO₂e_Leakage`
 - Calculate displaced emissions if applicable
 
 **Files to modify:**
-- `src/lib/adapters/isometric/utils/leakage.ts` (new)
+- `src/lib/isometric/utils/leakage.ts` (new)
 
 ---
 

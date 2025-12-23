@@ -2,9 +2,11 @@
 
 Inconsistencies discovered between Figma mobile data entry forms and the database schema.
 
+> Completed items have been archived to `archived/TODO-schema-form-gaps-completed.md`
+
 ## Priority 1: Required Schema Changes
 
-### 1. ~~Add `notes` field to `feedstocks` table~~ ✅ DONE
+### 1. ~~Add `notes` field to `feedstocks` table~~ DONE
 
 **Resolved**: Added `notes` field to feedstocks schema and actions.
 
@@ -36,7 +38,7 @@ export const documents = pgTable("documents", {
 
 ## Priority 2: Schema Design Decisions Needed
 
-### 3. ~~Production Run - Multiple Feedstock Sources~~ ✅ DECIDED
+### 3. ~~Production Run - Multiple Feedstock Sources~~ DECIDED
 
 **Decision**: Use JSON in `feedstockMix` field (simpler approach).
 
@@ -76,38 +78,11 @@ The first feedstock source is also stored in `feedstockStorageLocationId` for ba
 
 ---
 
-## Completed (Dec 2024)
-
-- [x] All 5 data entry page routes created (`/data-entry/*`)
-- [x] Data entry hub page with incomplete entries query
-- [x] Form validation schemas created (`src/lib/validations/data-entry.ts`)
-- [x] Base form components (FormSheet, FormSection, PhotoUpload, etc.)
-- [x] Page-based form components using TanStack Form + `useAppForm`
-- [x] Server actions for create/update operations
-- [x] Auto-generated codes (FS-2025-001, PR-2025-001, BP-2025-001)
-- [x] Edit pages for incomplete feedstock and production run entries
-- [x] TypeScript errors resolved
-- [x] **Deleted duplicate sheet-based forms** (`src/components/forms/data-entry/`) - kept only page-based forms
-- [x] **Added `notes` field** to feedstocks schema and actions
-- [x] **Fixed UUID validation** in all form actions (empty strings → null)
-- [x] **Multi-feedstock JSON storage** in `feedstockMix` field
-
-## Completed (Dec 10, 2025) - Form UX Improvements
-
-- [x] **Toast notifications** for form errors using sonner (`src/components/ui/sonner.tsx`)
-- [x] **Required field indicators** - asterisk (\*) shown for required fields in all forms
-- [x] **Last edited timestamps** - incomplete entries show relative time ("Edited 2h ago")
-- [x] **Smart "Show All (X)" button** - only visible when >5 incomplete entries
-- [x] **Entries sorted by most recently edited** - uses `updatedAt` for sorting
-- [x] **ActionResult pattern** - all form actions return `{ success, data/error }` instead of throwing
-- [x] **Inline + toast error display** - form errors shown both inline and as toast notifications
-
-### Workarounds Applied
+## Workarounds Applied
 
 | Issue                                  | Workaround                                                                  |
 | -------------------------------------- | --------------------------------------------------------------------------- |
 | Sampling/Incident missing `facilityId` | Form uses Production Run dropdown instead; facility derived from PR         |
-| ~~Feedstock missing `notes`~~          | ✅ Fixed - notes field added to schema                                      |
 | Multi-feedstock inputs                 | JSON stored in `feedstockMix`, first source in `feedstockStorageLocationId` |
 | Photo uploads                          | UI shown but not persisted (documents table pending)                        |
 
@@ -130,10 +105,6 @@ The first feedstock source is also stored in `feedstockStorageLocationId` for ba
 - Toast: `src/components/ui/sonner.tsx`
 - Incomplete entries list: `src/components/data-entry/incomplete-entries-section.tsx`
 - Relative time helper: `src/lib/utils.ts` (`formatRelativeTime`)
-
-### ~~Sheet-Based Forms (Legacy)~~ DELETED
-
-- ~~Forms: `src/components/forms/data-entry/`~~ - Removed to reduce duplication
 
 ### Database Schemas
 
@@ -179,13 +150,6 @@ const form = useAppForm({
 </form.AppField>
 ```
 
-### Form Simplification (Dec 10, 2025)
-
-- **Deleted ~1,800 lines** of duplicate sheet-based forms
-- **Added UUID validation** helper (`toUuidOrNull`) to all actions
-- **Facility/Production Run required** - forms now require a primary entity before saving
-- **Multi-feedstock as JSON** - stored in `feedstockMix` field
-
 ### Remaining TODO
 
 - Photo uploads not persisted (documents table pending)
@@ -209,29 +173,9 @@ Currently hardcoded in `src/lib/constants/transport.ts`:
 
 ---
 
-## Code Review Findings (Dec 10, 2025)
+## Known Issues - Not Yet Fixed
 
-### Fixed - Critical Issues
-
-| Issue                                   | Status   | Fix                                                       |
-| --------------------------------------- | -------- | --------------------------------------------------------- |
-| Missing error handling on DB operations | ✅ Fixed | Added try-catch to all action functions                   |
-| Biochar form notes bug                  | ✅ Fixed | Changed `notes: ""` → `notes: initialData?.notes ?? ""`   |
-| Buggy inline completion logic           | ✅ Fixed | Now using `isFeedstockComplete()` etc. from completion.ts |
-
-**Details on completion logic bug:**
-
-```typescript
-// BEFORE (buggy) - 0 is falsy, so weightKg=0 would fail
-const hasRequiredFields = values.weightKg && values.moisturePercent;
-
-// AFTER (correct) - uses proper completion function
-const status = isFeedstockComplete(values) ? "complete" : "missing_data";
-```
-
-### Known Issues - Not Yet Fixed
-
-#### 1. Re-export pattern broken in "use server" files
+### 1. Re-export pattern broken in "use server" files
 
 **Files:** `sampling/actions.ts`, `incident/actions.ts`
 **Symptom:** Build fails with "Export doesn't exist in target module"
@@ -243,7 +187,7 @@ export { getProductionRunsForDropdown as getProductionRunsForSampling } from "@/
 
 **Fix:** Move the function into each file or restructure imports.
 
-#### 2. PhotoUpload state never used (memory leak risk)
+### 2. PhotoUpload state never used (memory leak risk)
 
 **Files:** All 6 form components
 
@@ -253,7 +197,7 @@ const [photos, setPhotos] = React.useState<File[]>([]); // Created but never sen
 
 **Fix:** Either integrate with document upload or remove the state.
 
-#### 3. Zod schemas defined but never validated at runtime
+### 3. Zod schemas defined but never validated at runtime
 
 **File:** `src/lib/validations/data-entry.ts`
 
@@ -261,22 +205,22 @@ const [photos, setPhotos] = React.useState<File[]>([]); // Created but never sen
 - Currently only used as TypeScript types
   **Impact:** Invalid data could be saved to database
 
-#### 4. Unused completion functions (orphaned code)
+### 4. Unused completion functions (orphaned code)
 
-**File:** `src/lib/validations/completion.ts`
+**File:** `src/lib/completion-checks.ts`
 
 - `isSamplingComplete()` - never called
 - `isIncidentComplete()` - never called
 - `isBiocharProductComplete()` - only called in form, not in actions
 
-#### 5. Code duplication (not critical but technical debt)
+### 5. Code duplication (not critical but technical debt)
 
 - Code generation function duplicated 4x (~80 lines)
 - Delete handler duplicated 6x in form components
 - Option conversion (`map(f => ({value: f.id, label: f.name}))`) duplicated 6x
 - Revalidation pattern (`revalidatePath`) repeated 30+ times
 
-#### 6. Production run has dual state for feedstock inputs
+### 6. Production run has dual state for feedstock inputs
 
 **File:** `production-run-form.tsx`
 
