@@ -51,8 +51,7 @@ varuna-carbon-dmrv/
 │   │   ├── auth.ts           # better-auth setup
 │   │   ├── query-client.ts   # React Query config
 │   │   ├── form-utils.ts     # Form utility functions
-│   │   ├── validations/      # Validation utilities
-│   │   │   └── completion.ts # Completion check functions for forms
+│   │   ├── completion-checks.ts # Completion check functions (shared by UI & server)
 │   │   ├── actions/          # Shared server actions
 │   │   │   └── utils.ts      # Helper functions
 │   │   └── isometric/        # Isometric API client
@@ -108,8 +107,8 @@ Component → fn/ → data-access/ → db/
 
 | Folder | Purpose | Examples |
 |--------|---------|----------|
-| **lib/** | Third-party integrations, validation | `auth.ts`, `isometric/`, `validations/` |
-| **utils/** | Pure helper functions | `cn()`, `formatDate()`, `calculateDistanceKm()` |
+| **lib/** | Third-party integrations, business rules | `auth.ts`, `isometric/`, `completion-checks.ts` |
+| **utils/** | Pure helper functions | `cn()`, `formatRelativeTime()`, `toUuidOrNull()` |
 
 ## Server Function Pattern
 
