@@ -10,6 +10,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { type ActionResult } from "@/types/actions";
+import { toUuidOrNull, toDateString } from "@/utils";
+import { isProductionRunComplete } from "@/lib/completion-checks";
 import * as productionRunData from "@/data-access/production-runs";
 
 // ============================================
@@ -47,35 +49,8 @@ const productionRunFormSchema = z.object({
 export type ProductionRunFormInput = z.infer<typeof productionRunFormSchema>;
 
 // ============================================
-// COMPLETION CHECK
-// ============================================
-
-function isComplete(values: ProductionRunFormInput & { endTime?: Date | null }): boolean {
-  const totalFeedstockKg =
-    values.feedstockInputs?.reduce((sum, input) => sum + (input.amountKg || 0), 0) ?? 0;
-
-  return Boolean(
-    values.facilityId &&
-      values.reactorId &&
-      values.operatorId &&
-      totalFeedstockKg > 0 &&
-      values.biocharAmountKg &&
-      values.endTime
-  );
-}
-
-// ============================================
 // UTILITIES
 // ============================================
-
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
-
-function toDateString(date?: Date | null): string {
-  return (date ?? new Date()).toISOString().split("T")[0];
-}
 
 function processFeedstockInputs(
   feedstockInputs?: Array<{ storageLocationId?: string; amountKg?: number }> | null
@@ -178,7 +153,7 @@ export async function updateProductionRunFn(
     const { totalFeedstockKg, feedstockMix, feedstockStorageLocationId } =
       processFeedstockInputs(data.feedstockInputs);
 
-    const status = isComplete({ ...data, endTime: input.endTime }) ? "complete" : "running";
+    const status = isProductionRunComplete({ ...data, endTime: input.endTime }) ? "complete" : "running";
 
     await productionRunData.update(id, {
       facilityId,

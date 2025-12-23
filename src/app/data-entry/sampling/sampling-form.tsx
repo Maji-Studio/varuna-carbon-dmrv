@@ -8,7 +8,7 @@ import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
 import { createSampleFn, updateSampleFn, deleteSampleFn } from "@/fn/samples";
-import { isSamplingComplete } from "@/lib/validations/completion";
+import { isSampleComplete } from "@/lib/completion-checks";
 import type { SelectOption } from "../actions";
 
 interface ProductionRunOption {
@@ -68,7 +68,7 @@ export function SamplingForm({
       notes: initialData?.notes ?? "",
     },
     onSubmit: async ({ value }) => {
-      const isComplete = isSamplingComplete(value);
+      const isComplete = isSampleComplete(value);
 
       const result = isEdit && initialData
         ? await updateSampleFn(initialData.id, value)
@@ -119,7 +119,7 @@ export function SamplingForm({
   return (
     <form.Subscribe selector={(state) => state.values}>
       {(values) => {
-        const isComplete = isSamplingComplete(values);
+        const isComplete = isSampleComplete(values);
 
         return (
           <FormPageLayout

@@ -8,7 +8,7 @@ import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
 import { createIncidentFn, updateIncidentFn, deleteIncidentFn } from "@/fn/incidents";
-import { isIncidentComplete } from "@/lib/validations/completion";
+import { isIncidentComplete } from "@/lib/completion-checks";
 import type { SelectOption } from "../actions";
 
 interface ProductionRunOption {

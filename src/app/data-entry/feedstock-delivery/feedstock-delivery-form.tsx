@@ -14,7 +14,7 @@ import {
   updateFeedstockDeliveryFn,
   deleteFeedstockDeliveryFn,
 } from "@/fn/feedstock-deliveries";
-import { isFeedstockDeliveryComplete } from "@/lib/validations/completion";
+import { isFeedstockDeliveryComplete } from "@/lib/completion-checks";
 import { calculateDistanceKm } from "@/utils";
 import type { SelectOption, VehicleOption } from "../actions";
 

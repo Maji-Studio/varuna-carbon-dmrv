@@ -10,6 +10,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { type ActionResult } from "@/types/actions";
+import { toUuidOrNull } from "@/utils";
+import { isFeedstockDeliveryComplete } from "@/lib/completion-checks";
 import * as feedstockDeliveryData from "@/data-access/feedstock-deliveries";
 
 // ============================================
@@ -35,31 +37,6 @@ const feedstockDeliveryFormSchema = z.object({
 export type FeedstockDeliveryFormInput = z.infer<typeof feedstockDeliveryFormSchema>;
 
 // ============================================
-// COMPLETION CHECK
-// ============================================
-
-function isComplete(values: Partial<FeedstockDeliveryFormInput>): boolean {
-  return Boolean(
-    values.facilityId &&
-      values.supplierId &&
-      values.deliveryDate &&
-      values.feedstockTypeId &&
-      values.weightKg != null &&
-      values.weightKg > 0 &&
-      values.moisturePercent != null
-  );
-}
-
-// ============================================
-// UTILITIES
-// ============================================
-
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
-
-// ============================================
 // SERVER FUNCTIONS
 // ============================================
 
@@ -80,7 +57,7 @@ export async function createFeedstockDeliveryFn(
 
   try {
     const code = await feedstockDeliveryData.getNextCode();
-    const status = isComplete(data) ? "complete" : "missing_data";
+    const status = isFeedstockDeliveryComplete(data) ? "complete" : "missing_data";
 
     const result = await feedstockDeliveryData.insert({
       code,
@@ -127,7 +104,7 @@ export async function updateFeedstockDeliveryFn(
   }
 
   try {
-    const status = isComplete(data) ? "complete" : "missing_data";
+    const status = isFeedstockDeliveryComplete(data) ? "complete" : "missing_data";
 
     await feedstockDeliveryData.update(id, {
       facilityId,

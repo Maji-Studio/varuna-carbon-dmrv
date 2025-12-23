@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { type ActionResult } from "@/types/actions";
+import { toUuidOrNull } from "@/utils";
 import * as biocharProductData from "@/data-access/biochar-products";
 
 // ============================================
@@ -34,21 +35,10 @@ const biocharProductFormSchema = z.object({
 export type BiocharProductFormInput = z.infer<typeof biocharProductFormSchema>;
 
 // ============================================
-// UTILITIES
-// ============================================
-
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
-
-// ============================================
 // SERVER FUNCTIONS
 // ============================================
 
-export async function createBiocharProductFn(
-  input: BiocharProductFormInput
-): Promise<ActionResult<{ id: string }>> {
+export async function createBiocharProductFn(input: BiocharProductFormInput): Promise<ActionResult<{ id: string }>> {
   // Validate
   const parsed = biocharProductFormSchema.safeParse(input);
   if (!parsed.success) {

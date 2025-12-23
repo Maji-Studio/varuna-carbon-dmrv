@@ -10,6 +10,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { type ActionResult } from "@/types/actions";
+import { toUuidOrNull, toDateString } from "@/utils";
+import { isFeedstockComplete } from "@/lib/completion-checks";
 import * as feedstockData from "@/data-access/feedstocks";
 
 // ============================================
@@ -41,36 +43,6 @@ const feedstockFormSchema = z.object({
 export type FeedstockFormInput = z.infer<typeof feedstockFormSchema>;
 
 // ============================================
-// COMPLETION CHECK
-// ============================================
-
-function isComplete(values: Partial<FeedstockFormInput>): boolean {
-  return Boolean(
-    values.facilityId &&
-      values.supplierId &&
-      values.deliveryDate &&
-      values.feedstockTypeId &&
-      values.weightKg != null &&
-      values.weightKg > 0 &&
-      values.moisturePercent != null &&
-      values.storageLocationId
-  );
-}
-
-// ============================================
-// UTILITIES
-// ============================================
-
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
-
-function toDateString(date?: Date | null): string {
-  return (date ?? new Date()).toISOString().split("T")[0];
-}
-
-// ============================================
 // SERVER FUNCTIONS
 // ============================================
 
@@ -91,7 +63,7 @@ export async function createFeedstockFn(
 
   try {
     const code = await feedstockData.getNextCode();
-    const status = isComplete(data) ? "complete" : "missing_data";
+    const status = isFeedstockComplete(data) ? "complete" : "missing_data";
 
     const result = await feedstockData.insert({
       code,
@@ -141,7 +113,7 @@ export async function updateFeedstockFn(
   }
 
   try {
-    const status = isComplete(data) ? "complete" : "missing_data";
+    const status = isFeedstockComplete(data) ? "complete" : "missing_data";
 
     await feedstockData.update(id, {
       facilityId,

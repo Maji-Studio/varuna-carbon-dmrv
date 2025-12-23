@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { type ActionResult } from "@/types/actions";
+import { toUuidOrNull } from "@/utils";
 import * as sampleData from "@/data-access/samples";
 
 // ============================================
@@ -31,15 +32,6 @@ const sampleFormSchema = z.object({
 });
 
 export type SampleFormInput = z.infer<typeof sampleFormSchema>;
-
-// ============================================
-// UTILITIES
-// ============================================
-
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
 
 // ============================================
 // SERVER FUNCTIONS

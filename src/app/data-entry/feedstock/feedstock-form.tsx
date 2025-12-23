@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
 import { createFeedstockFn, updateFeedstockFn, deleteFeedstockFn } from "@/fn/feedstocks";
-import { isCombinedFeedstockComplete } from "@/lib/validations/completion";
+import { isFeedstockComplete } from "@/lib/completion-checks";
 import { calculateDistanceKm } from "@/utils";
 import type { SelectOption, VehicleOption } from "../actions";
 
@@ -80,7 +80,7 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
       notes: initialData?.notes ?? "",
     },
     onSubmit: async ({ value }) => {
-      const isComplete = isCombinedFeedstockComplete(value);
+      const isComplete = isFeedstockComplete(value);
 
       const result = isEdit && initialData
         ? await updateFeedstockFn(initialData.id, value)
@@ -187,7 +187,7 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
   return (
     <form.Subscribe selector={(state) => state.values}>
       {(values) => {
-        const isComplete = isCombinedFeedstockComplete(values);
+        const isComplete = isFeedstockComplete(values);
         return (
           <FormPageLayout
             title={isEdit ? "Edit Feedstock" : "New Feedstock"}

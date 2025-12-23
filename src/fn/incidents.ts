@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { type ActionResult } from "@/types/actions";
+import { toUuidOrNull } from "@/utils";
 import * as incidentData from "@/data-access/incidents";
 
 // ============================================
@@ -25,15 +26,6 @@ const incidentFormSchema = z.object({
 });
 
 export type IncidentFormInput = z.infer<typeof incidentFormSchema>;
-
-// ============================================
-// UTILITIES
-// ============================================
-
-function toUuidOrNull(value: string | undefined | null): string | null {
-  if (!value || value.trim() === "") return null;
-  return value;
-}
 
 // ============================================
 // SERVER FUNCTIONS

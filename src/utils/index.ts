@@ -65,3 +65,19 @@ export function calculateDistanceKm(
 function toRadians(degrees: number): number {
   return degrees * (Math.PI / 180);
 }
+
+/**
+ * Convert empty string or null/undefined to null, otherwise return the value.
+ * Used for optional UUID fields in forms.
+ */
+export function toUuidOrNull(value: string | undefined | null): string | null {
+  if (!value || value.trim() === "") return null;
+  return value;
+}
+
+/**
+ * Format a date as YYYY-MM-DD string, defaulting to today.
+ */
+export function toDateString(date?: Date | null): string {
+  return (date ?? new Date()).toISOString().split("T")[0];
+}
