@@ -34,10 +34,10 @@ export const feedstockDeliveryFormSchema = z.object({
   // Delivery Details
   supplierId: z.string().uuid().optional(),
   driverId: z.string().uuid().optional(),
-  vehicleId: z.string().uuid().optional(), // Reference to vehicles table
-  vehicleType: z.string().optional(), // Legacy: kept for backwards compatibility
-  fuelType: z.string().optional(), // Legacy: kept for backwards compatibility (or auto-derived from vehicle)
-  distanceKm: z.number().min(0).optional(), // Can be auto-calculated or manually entered
+  vehicleId: z.string().uuid().optional(),
+  vehicleType: z.string().optional(),
+  fuelType: z.string().optional(),
+  distanceKm: z.number().min(0).optional(),
   fuelConsumedLiters: z.number().min(0).optional(),
 
   // Feedstock Details
@@ -64,9 +64,9 @@ export const combinedFeedstockFormSchema = z.object({
   deliveryDate: z.date().optional(),
   supplierId: z.string().uuid().optional(),
   driverId: z.string().uuid().optional(),
-  vehicleId: z.string().uuid().optional(), // Reference to vehicles table
-  vehicleType: z.string().optional(), // Legacy: kept for backwards compatibility
-  fuelType: z.string().optional(), // Legacy: kept for backwards compatibility
+  vehicleId: z.string().uuid().optional(),
+  vehicleType: z.string().optional(),
+  fuelType: z.string().optional(),
   distanceKm: z.number().min(0).optional(),
   fuelConsumedLiters: z.number().min(0).optional(),
 

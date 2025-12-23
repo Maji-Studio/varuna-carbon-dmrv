@@ -111,19 +111,10 @@ export function SamplingForm({
     });
   };
 
-  // Memoized options
-  const productionRunOptions = React.useMemo(
-    () => productionRuns.map((pr) => ({ value: pr.id, label: pr.name })),
-    [productionRuns]
-  );
-  const reactorOptions = React.useMemo(
-    () => options.reactors.map((r) => ({ value: r.id, label: r.name })),
-    [options.reactors]
-  );
-  const operatorOptions = React.useMemo(
-    () => options.operators.map((o) => ({ value: o.id, label: o.name })),
-    [options.operators]
-  );
+  // Convert options to { value, label } format
+  const productionRunOptions = productionRuns.map((pr) => ({ value: pr.id, label: pr.name }));
+  const reactorOptions = options.reactors.map((r) => ({ value: r.id, label: r.name }));
+  const operatorOptions = options.operators.map((o) => ({ value: o.id, label: o.name }));
 
   return (
     <form.Subscribe selector={(state) => state.values}>

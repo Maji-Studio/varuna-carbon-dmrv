@@ -18,86 +18,6 @@ import { isFeedstockDeliveryComplete } from "@/lib/validations/completion";
 import { calculateDistanceKm } from "@/lib/utils";
 import type { SelectOption, VehicleOption } from "../actions";
 
-// Helper component to handle auto-calculations with reactive form values
-function AutoCalculations({
-  values,
-  options,
-  form,
-  prevAutoDistanceRef,
-  prevAutoFuelRef,
-}: {
-  values: {
-    facilityId: string;
-    supplierId: string;
-    vehicleId: string;
-    distanceKm: number | undefined;
-    fuelConsumedLiters: number | undefined;
-  };
-  options: {
-    facilities: SelectOption[];
-    suppliers: SelectOption[];
-    vehicles: VehicleOption[];
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: any;
-  prevAutoDistanceRef: React.MutableRefObject<number | undefined>;
-  prevAutoFuelRef: React.MutableRefObject<number | undefined>;
-}) {
-  const selectedSupplier = options.suppliers.find((s) => s.id === values.supplierId);
-  const selectedFacility = options.facilities.find((f) => f.id === values.facilityId);
-  const selectedVehicle = options.vehicles.find((v) => v.id === values.vehicleId);
-
-  // Auto-set fuel type when vehicle is selected
-  React.useEffect(() => {
-    if (selectedVehicle) {
-      form.setFieldValue("fuelType", selectedVehicle.fuelType);
-      form.setFieldValue("vehicleType", selectedVehicle.name);
-    }
-  }, [selectedVehicle?.id, form, selectedVehicle]);
-
-  // Auto-calculate distance when supplier and facility are selected
-  React.useEffect(() => {
-    if (selectedSupplier && selectedFacility) {
-      const supplierLat = selectedSupplier.gpsLat;
-      const supplierLng = selectedSupplier.gpsLng;
-      const facilityLat = selectedFacility.gpsLat;
-      const facilityLng = selectedFacility.gpsLng;
-
-      if (supplierLat && supplierLng && facilityLat && facilityLng) {
-        const calculatedDistance = calculateDistanceKm(
-          supplierLat,
-          supplierLng,
-          facilityLat,
-          facilityLng
-        );
-
-        // Only update if no value set yet or if value matches previous auto-calculated value
-        if (values.distanceKm === undefined || values.distanceKm === prevAutoDistanceRef.current) {
-          form.setFieldValue("distanceKm", calculatedDistance);
-        }
-        prevAutoDistanceRef.current = calculatedDistance;
-      }
-    }
-  }, [selectedSupplier?.id, selectedFacility?.id, form, selectedSupplier, selectedFacility, values.distanceKm, prevAutoDistanceRef]);
-
-  // Auto-calculate fuel consumed when distance and vehicle are selected
-  React.useEffect(() => {
-    if (selectedVehicle && values.distanceKm) {
-      const calculatedFuel = Math.round(
-        values.distanceKm * selectedVehicle.fuelConsumptionLPerKm * 10
-      ) / 10;
-
-      // Only update if no value set yet or if value matches previous auto-calculated value
-      if (values.fuelConsumedLiters === undefined || values.fuelConsumedLiters === prevAutoFuelRef.current) {
-        form.setFieldValue("fuelConsumedLiters", calculatedFuel);
-      }
-      prevAutoFuelRef.current = calculatedFuel;
-    }
-  }, [values.distanceKm, selectedVehicle?.id, form, selectedVehicle, values.fuelConsumedLiters, prevAutoFuelRef]);
-
-  return null;
-}
-
 interface FeedstockDeliveryData {
   id: string;
   facilityId: string;
@@ -139,13 +59,8 @@ export function FeedstockDeliveryForm({
   const [photos, setPhotos] = React.useState<File[]>([]);
   const [isPending, startTransition] = React.useTransition();
 
-  // Track previous auto-calculated values to detect manual overrides
-  const prevAutoDistanceRef = React.useRef<number | undefined>(undefined);
-  const prevAutoFuelRef = React.useRef<number | undefined>(undefined);
-
   const form = useAppForm({
     defaultValues: {
-      // Preselect first facility if not editing
       facilityId: initialData?.facilityId ?? options.facilities[0]?.id ?? "",
       deliveryDate: initialData?.deliveryDate ?? new Date(),
       supplierId: initialData?.supplierId ?? "",
@@ -205,52 +120,78 @@ export function FeedstockDeliveryForm({
     });
   };
 
-  // Convert options to { value, label } format (memoized)
-  const facilityOptions = React.useMemo(
-    () => options.facilities.map((f) => ({ value: f.id, label: f.name })),
-    [options.facilities]
+  // Convert options to { value, label } format
+  const facilityOptions = options.facilities.map((f) => ({ value: f.id, label: f.name }));
+  const supplierOptions = options.suppliers.map((s) => ({ value: s.id, label: s.name }));
+  const driverOptions = options.drivers.map((d) => ({ value: d.id, label: d.name }));
+  const feedstockTypeOptions = options.feedstockTypes.map((t) => ({ value: t.id, label: t.name }));
+  const vehicleOptions = options.vehicles.map((v) => ({ value: v.id, label: v.name }));
+
+  // Get selected entities for calculations
+  const selectedSupplier = options.suppliers.find(
+    (s) => s.id === form.state.values.supplierId
   );
-  const supplierOptions = React.useMemo(
-    () => options.suppliers.map((s) => ({ value: s.id, label: s.name })),
-    [options.suppliers]
+  const selectedFacility = options.facilities.find(
+    (f) => f.id === form.state.values.facilityId
   );
-  const driverOptions = React.useMemo(
-    () => options.drivers.map((d) => ({ value: d.id, label: d.name })),
-    [options.drivers]
+  const selectedVehicle = options.vehicles.find(
+    (v) => v.id === form.state.values.vehicleId
   );
-  const feedstockTypeOptions = React.useMemo(
-    () => options.feedstockTypes.map((t) => ({ value: t.id, label: t.name })),
-    [options.feedstockTypes]
-  );
-  const vehicleOptions = React.useMemo(
-    () => options.vehicles.map((v) => ({ value: v.id, label: v.name })),
-    [options.vehicles]
-  );
+
+  // Auto-set fuel type and vehicle name when vehicle is selected
+  React.useEffect(() => {
+    if (selectedVehicle) {
+      form.setFieldValue("fuelType", selectedVehicle.fuelType);
+      form.setFieldValue("vehicleType", selectedVehicle.name);
+    }
+  }, [selectedVehicle?.id]);
+
+  // Auto-calculate distance when supplier and facility are selected
+  React.useEffect(() => {
+    if (
+      selectedSupplier?.gpsLat &&
+      selectedSupplier?.gpsLng &&
+      selectedFacility?.gpsLat &&
+      selectedFacility?.gpsLng
+    ) {
+      const distance = calculateDistanceKm(
+        selectedSupplier.gpsLat,
+        selectedSupplier.gpsLng,
+        selectedFacility.gpsLat,
+        selectedFacility.gpsLng
+      );
+      form.setFieldValue("distanceKm", distance);
+    }
+  }, [
+    selectedSupplier?.gpsLat,
+    selectedSupplier?.gpsLng,
+    selectedFacility?.gpsLat,
+    selectedFacility?.gpsLng,
+  ]);
+
+  // Auto-calculate fuel consumed when distance or vehicle changes
+  React.useEffect(() => {
+    const distanceKm = form.state.values.distanceKm;
+    if (selectedVehicle && distanceKm) {
+      const fuel = Math.round(distanceKm * selectedVehicle.fuelConsumptionLPerKm * 10) / 10;
+      form.setFieldValue("fuelConsumedLiters", fuel);
+    }
+  }, [selectedVehicle?.id, form.state.values.distanceKm]);
 
   return (
     <form.Subscribe selector={(state) => state.values}>
       {(values) => {
         const isComplete = isFeedstockDeliveryComplete(values);
-        const selectedSupplier = options.suppliers.find((s) => s.id === values.supplierId);
-        const selectedVehicle = options.vehicles.find((v) => v.id === values.vehicleId);
         return (
-          <>
-            <AutoCalculations
-              values={values}
-              options={options}
-              form={form}
-              prevAutoDistanceRef={prevAutoDistanceRef}
-              prevAutoFuelRef={prevAutoFuelRef}
-            />
-            <FormPageLayout
-              title={isEdit ? "Edit Feedstock Delivery" : "New Feedstock Delivery"}
-              onSubmit={handleSubmit}
-              onDelete={isEdit ? handleDelete : undefined}
-              isSubmitting={isPending}
-              isDeleting={isPending}
-              hasDraft={isEdit}
-              isComplete={isComplete}
-            >
+          <FormPageLayout
+            title={isEdit ? "Edit Feedstock Delivery" : "New Feedstock Delivery"}
+            onSubmit={handleSubmit}
+            onDelete={isEdit ? handleDelete : undefined}
+            isSubmitting={isPending}
+            isDeleting={isPending}
+            hasDraft={isEdit}
+            isComplete={isComplete}
+          >
             {/* Delivery Information */}
             <FormSection title="Delivery Information">
               <form.AppField name="facilityId">
@@ -393,8 +334,7 @@ export function FeedstockDeliveryForm({
                 accept="image/*"
               />
             </FormSection>
-            </FormPageLayout>
-          </>
+          </FormPageLayout>
         );
       }}
     </form.Subscribe>

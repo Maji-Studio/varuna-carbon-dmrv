@@ -8,18 +8,12 @@ import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
 import { createFeedstock, updateFeedstock, deleteFeedstock } from "./actions";
 import { isCombinedFeedstockComplete } from "@/lib/validations/completion";
-import {
-  VEHICLE_TYPES,
-  FUEL_TYPES,
-  VEHICLE_FUEL_MAP,
-  NO_FUEL_VEHICLES,
-  calculateDistanceKm,
-  calculateFuelConsumed,
-} from "@/lib/constants/transport";
-import type { SelectOption } from "../actions";
+import { calculateDistanceKm } from "@/lib/utils";
+import type { SelectOption, VehicleOption } from "../actions";
 
 interface FeedstockData {
   id: string;
@@ -29,6 +23,7 @@ interface FeedstockData {
   deliveryDate: Date | null;
   supplierId: string | null;
   driverId: string | null;
+  vehicleId: string | null;
   vehicleType: string | null;
   fuelType: string | null;
   fuelConsumedLiters: number | null;
@@ -50,6 +45,7 @@ interface FeedstockFormProps {
     drivers: SelectOption[];
     feedstockTypes: SelectOption[];
     storageLocations: SelectOption[];
+    vehicles: VehicleOption[];
   };
 }
 
@@ -71,6 +67,7 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
       deliveryDate: initialData?.deliveryDate ?? new Date(),
       supplierId: initialData?.supplierId ?? "",
       driverId: initialData?.driverId ?? "",
+      vehicleId: initialData?.vehicleId ?? "",
       vehicleType: initialData?.vehicleType ?? "",
       fuelType: initialData?.fuelType ?? "",
       fuelConsumedLiters: initialData?.fuelConsumedLiters ?? undefined,
@@ -126,37 +123,25 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
     });
   };
 
-  // Convert options to { value, label } format (memoized)
-  const facilityOptions = React.useMemo(
-    () => options.facilities.map((f) => ({ value: f.id, label: f.name })),
-    [options.facilities]
-  );
-  const supplierOptions = React.useMemo(
-    () => options.suppliers.map((s) => ({ value: s.id, label: s.name })),
-    [options.suppliers]
-  );
-  const driverOptions = React.useMemo(
-    () => options.drivers.map((d) => ({ value: d.id, label: d.name })),
-    [options.drivers]
-  );
-  const feedstockTypeOptions = React.useMemo(
-    () => options.feedstockTypes.map((t) => ({ value: t.id, label: t.name })),
-    [options.feedstockTypes]
-  );
-  const feedstockStorageOptions = React.useMemo(
-    () =>
-      options.storageLocations
-        .filter((loc) => loc.name.toLowerCase().includes("feedstock"))
-        .map((l) => ({ value: l.id, label: l.name })),
-    [options.storageLocations]
-  );
+  // Convert options to { value, label } format
+  const facilityOptions = options.facilities.map((f) => ({ value: f.id, label: f.name }));
+  const supplierOptions = options.suppliers.map((s) => ({ value: s.id, label: s.name }));
+  const driverOptions = options.drivers.map((d) => ({ value: d.id, label: d.name }));
+  const feedstockTypeOptions = options.feedstockTypes.map((t) => ({ value: t.id, label: t.name }));
+  const feedstockStorageOptions = options.storageLocations
+    .filter((loc) => loc.name.toLowerCase().includes("feedstock"))
+    .map((l) => ({ value: l.id, label: l.name }));
+  const vehicleOptions = options.vehicles.map((v) => ({ value: v.id, label: v.name }));
 
-  // Get selected supplier and facility for GPS calculations
+  // Get selected entities for calculations
   const selectedSupplier = options.suppliers.find(
     (s) => s.id === form.state.values.supplierId
   );
   const selectedFacility = options.facilities.find(
     (f) => f.id === form.state.values.facilityId
+  );
+  const selectedVehicle = options.vehicles.find(
+    (v) => v.id === form.state.values.vehicleId
   );
 
   // Auto-calculate distance when supplier or facility changes
@@ -182,39 +167,22 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
     selectedFacility?.gpsLng,
   ]);
 
-  // Auto-select fuel type based on vehicle type
+  // Auto-set fuel type and vehicle name when vehicle is selected
   React.useEffect(() => {
-    const vehicleType = form.state.values.vehicleType;
-    if (vehicleType) {
-      const defaultFuelType = VEHICLE_FUEL_MAP[vehicleType.toLowerCase()];
-      if (defaultFuelType && defaultFuelType !== "electric") {
-        form.setFieldValue("fuelType", defaultFuelType);
-      } else if (defaultFuelType === "electric") {
-        form.setFieldValue("fuelType", "electric");
-        form.setFieldValue("fuelConsumedLiters", undefined);
-      }
+    if (selectedVehicle) {
+      form.setFieldValue("fuelType", selectedVehicle.fuelType);
+      form.setFieldValue("vehicleType", selectedVehicle.name);
     }
-  }, [form.state.values.vehicleType]);
+  }, [selectedVehicle?.id]);
 
-  // Auto-calculate fuel consumed when distance or vehicle type changes
+  // Auto-calculate fuel consumed when distance or vehicle changes
   React.useEffect(() => {
-    const vehicleType = form.state.values.vehicleType;
     const distanceKm = form.state.values.distanceKm;
-
-    if (
-      vehicleType &&
-      distanceKm &&
-      !NO_FUEL_VEHICLES.includes(vehicleType.toLowerCase())
-    ) {
-      const fuel = calculateFuelConsumed(vehicleType, distanceKm);
+    if (selectedVehicle && distanceKm) {
+      const fuel = Math.round(distanceKm * selectedVehicle.fuelConsumptionLPerKm * 10) / 10;
       form.setFieldValue("fuelConsumedLiters", fuel);
     }
-  }, [form.state.values.vehicleType, form.state.values.distanceKm]);
-
-  // Check if current vehicle requires fuel tracking
-  const showFuelFields = !NO_FUEL_VEHICLES.includes(
-    (form.state.values.vehicleType ?? "").toLowerCase()
-  );
+  }, [selectedVehicle?.id, form.state.values.distanceKm]);
 
   return (
     <form.Subscribe selector={(state) => state.values}>
@@ -298,15 +266,23 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
 
             {/* Transport Details */}
             <FormSection title="Transport Details">
-              <form.AppField name="vehicleType">
+              <form.AppField name="vehicleId">
                 {(field) => (
                   <field.SelectField
-                    label="Vehicle Type"
-                    placeholder="Select vehicle type"
-                    options={[...VEHICLE_TYPES]}
+                    label="Vehicle"
+                    placeholder="Select vehicle"
+                    options={vehicleOptions}
                   />
                 )}
               </form.AppField>
+
+              {/* Fuel Type - Read-only, auto-populated from vehicle */}
+              {selectedVehicle && (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-sm font-medium">Fuel Type</Label>
+                  <Input value={selectedVehicle.fuelType} disabled />
+                </div>
+              )}
 
               <form.AppField name="distanceKm">
                 {(field) => (
@@ -318,29 +294,15 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
                 )}
               </form.AppField>
 
-              {showFuelFields && (
-                <>
-                  <form.AppField name="fuelType">
-                    {(field) => (
-                      <field.SelectField
-                        label="Fuel Type"
-                        placeholder="Select fuel type"
-                        options={[...FUEL_TYPES]}
-                      />
-                    )}
-                  </form.AppField>
-
-                  <form.AppField name="fuelConsumedLiters">
-                    {(field) => (
-                      <field.NumberField
-                        label="Fuel Consumed"
-                        unit="L"
-                        placeholder="Auto-calculated from distance"
-                      />
-                    )}
-                  </form.AppField>
-                </>
-              )}
+              <form.AppField name="fuelConsumedLiters">
+                {(field) => (
+                  <field.NumberField
+                    label="Fuel Consumed"
+                    unit="L"
+                    placeholder="Auto-calculated from distance"
+                  />
+                )}
+              </form.AppField>
             </FormSection>
 
             {/* Feedstock Details */}
