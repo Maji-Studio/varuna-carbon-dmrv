@@ -18,10 +18,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
 import {
-  createProductionRun,
-  updateProductionRun,
-  deleteProductionRun,
-} from "./actions";
+  createProductionRunFn,
+  updateProductionRunFn,
+  deleteProductionRunFn,
+} from "@/fn/production-runs";
 import type { SelectOption } from "../actions";
 
 interface ProductionRunData {
@@ -129,8 +129,8 @@ export function ProductionRunForm({
 
       const result =
         isEdit && initialData
-          ? await updateProductionRun(initialData.id, formData)
-          : await createProductionRun(formData);
+          ? await updateProductionRunFn(initialData.id, formData)
+          : await createProductionRunFn(formData);
 
       if (!result.success) {
         toast.error(result.error);
@@ -158,7 +158,7 @@ export function ProductionRunForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteProductionRun(initialData.id);
+      const result = await deleteProductionRunFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -169,44 +169,24 @@ export function ProductionRunForm({
     });
   };
 
-  // Filter storage locations by type (memoized)
-  const feedstockStorageLocations = React.useMemo(
-    () =>
-      options.storageLocations.filter(
-        (loc) =>
-          loc.name.toLowerCase().includes("feedstock") ||
-          loc.name.toLowerCase().includes("bin")
-      ),
-    [options.storageLocations]
+  // Filter storage locations by type
+  const feedstockStorageLocations = options.storageLocations.filter(
+    (loc) =>
+      loc.name.toLowerCase().includes("feedstock") ||
+      loc.name.toLowerCase().includes("bin")
   );
 
-  const biocharStorageLocations = React.useMemo(
-    () =>
-      options.storageLocations.filter(
-        (loc) =>
-          loc.name.toLowerCase().includes("biochar") ||
-          loc.name.toLowerCase().includes("pile")
-      ),
-    [options.storageLocations]
+  const biocharStorageLocations = options.storageLocations.filter(
+    (loc) =>
+      loc.name.toLowerCase().includes("biochar") ||
+      loc.name.toLowerCase().includes("pile")
   );
 
-  // Convert options to { value, label } format (memoized)
-  const facilityOptions = React.useMemo(
-    () => options.facilities.map((f) => ({ value: f.id, label: f.name })),
-    [options.facilities]
-  );
-  const reactorOptions = React.useMemo(
-    () => options.reactors.map((r) => ({ value: r.id, label: r.name })),
-    [options.reactors]
-  );
-  const operatorOptions = React.useMemo(
-    () => options.operators.map((o) => ({ value: o.id, label: o.name })),
-    [options.operators]
-  );
-  const biocharStorageOptions = React.useMemo(
-    () => biocharStorageLocations.map((l) => ({ value: l.id, label: l.name })),
-    [biocharStorageLocations]
-  );
+  // Convert options to { value, label } format
+  const facilityOptions = options.facilities.map((f) => ({ value: f.id, label: f.name }));
+  const reactorOptions = options.reactors.map((r) => ({ value: r.id, label: r.name }));
+  const operatorOptions = options.operators.map((o) => ({ value: o.id, label: o.name }));
+  const biocharStorageOptions = biocharStorageLocations.map((l) => ({ value: l.id, label: l.name }));
 
   const addFeedstockInput = () => {
     setFeedstockInputs([

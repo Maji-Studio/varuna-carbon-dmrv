@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getFormOptions } from "../../actions";
-import { getBiocharProduct } from "../actions";
+import { getBiocharProductFn } from "@/fn/biochar-products";
 import { getBiocharProductOptions } from "../options";
 import { BiocharProductForm } from "../biochar-product-form";
 
@@ -15,7 +15,7 @@ export default async function EditBiocharProductPage({ params }: PageProps) {
   const [options, productOptions, product] = await Promise.all([
     getFormOptions(),
     getBiocharProductOptions(),
-    getBiocharProduct(id),
+    getBiocharProductFn(id),
   ]);
 
   if (!product) {

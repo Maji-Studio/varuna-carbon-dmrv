@@ -5,7 +5,7 @@
  * Each function checks if already synced, transforms data, calls API, stores ID.
  *
  * Usage:
- *   import { syncFacility } from '@/lib/adapters/isometric';
+ *   import { syncFacility } from '@/lib/isometric';
  *   const result = await syncFacility(facilityId);
  */
 
@@ -20,7 +20,7 @@ import {
   creditBatches,
   creditBatchApplications,
 } from "@/db/schema";
-import { isometric } from "@/lib/isometric";
+import { isometric } from "./client";
 import * as transformers from "./transformers";
 import * as aggregation from "./utils/aggregation";
 import { serverEnv } from "@/config/env.server";

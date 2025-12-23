@@ -18,7 +18,7 @@ pnpm tsx scripts/test-isometric-sync.ts
 ## Usage
 
 ```typescript
-import { syncCreditBatch, pullFeedstockTypes } from '@/lib/adapters/isometric';
+import { syncCreditBatch, pullFeedstockTypes } from '@/lib/isometric';
 
 // Pull feedstock types from Isometric (match by name)
 const feedstockResult = await pullFeedstockTypes();
@@ -165,8 +165,8 @@ Total biochar mass: 1500 kg
 
 ### Code Location
 
-- Aggregation utilities: `src/lib/adapters/isometric/utils/aggregation.ts`
-- Aggregated mapping: `src/lib/adapters/isometric/transformers/removal.ts`
+- Aggregation utilities: `src/lib/isometric/utils/aggregation.ts`
+- Aggregated mapping: `src/lib/isometric/transformers/removal.ts`
 
 ## Validation
 
@@ -266,9 +266,9 @@ Runs the full sync and shows results.
 |------|---------|
 | `src/lib/isometric/client.ts` | Low-level API client |
 | `src/lib/isometric/types.ts` | TypeScript types for Isometric API |
-| `src/lib/adapters/isometric/adapter.ts` | Sync functions |
-| `src/lib/adapters/isometric/transformers/removal.ts` | Template → local data mapping |
-| `src/lib/adapters/isometric/transformers/*.ts` | Other data transformers |
+| `src/lib/isometric/adapter.ts` | Sync functions |
+| `src/lib/isometric/transformers/removal.ts` | Template → local data mapping |
+| `src/lib/isometric/transformers/*.ts` | Other data transformers |
 | `src/config/env.server.ts` | Environment variable configuration |
 
 ## Confirmation Pulls
@@ -276,7 +276,7 @@ Runs the full sync and shows results.
 To check verification status from Isometric:
 
 ```typescript
-import { confirmGHGStatement } from '@/lib/adapters/isometric';
+import { confirmGHGStatement } from '@/lib/isometric';
 
 // Pull status and update local credit batch
 const result = await confirmGHGStatement(creditBatchId);

@@ -7,8 +7,8 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createIncident, updateIncident, deleteIncident } from "./actions";
-import { isIncidentComplete } from "@/lib/validations/completion";
+import { createIncidentFn, updateIncidentFn, deleteIncidentFn } from "@/fn/incidents";
+import { isIncidentComplete } from "@/lib/completion-checks";
 import type { SelectOption } from "../actions";
 
 interface ProductionRunOption {
@@ -59,8 +59,8 @@ export function IncidentForm({
       const isComplete = isIncidentComplete(value);
 
       const result = isEdit && initialData
-        ? await updateIncident(initialData.id, value)
-        : await createIncident(value);
+        ? await updateIncidentFn(initialData.id, value)
+        : await createIncidentFn(value);
 
       if (!result.success) {
         toast.error(result.error);
@@ -88,7 +88,7 @@ export function IncidentForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteIncident(initialData.id);
+      const result = await deleteIncidentFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -99,19 +99,10 @@ export function IncidentForm({
     });
   };
 
-  // Memoized options
-  const productionRunOptions = React.useMemo(
-    () => productionRuns.map((pr) => ({ value: pr.id, label: pr.name })),
-    [productionRuns]
-  );
-  const reactorOptions = React.useMemo(
-    () => options.reactors.map((r) => ({ value: r.id, label: r.name })),
-    [options.reactors]
-  );
-  const operatorOptions = React.useMemo(
-    () => options.operators.map((o) => ({ value: o.id, label: o.name })),
-    [options.operators]
-  );
+  // Convert options to { value, label } format
+  const productionRunOptions = productionRuns.map((pr) => ({ value: pr.id, label: pr.name }));
+  const reactorOptions = options.reactors.map((r) => ({ value: r.id, label: r.name }));
+  const operatorOptions = options.operators.map((o) => ({ value: o.id, label: o.name }));
 
   return (
     <form.Subscribe selector={(state) => state.values}>

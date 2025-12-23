@@ -22,7 +22,7 @@ The DMRV syncs data to Isometric using **hardcoded input key mappings**. If Isom
 ## Brittleness Points (Code Locations)
 
 ### 1. Hardcoded INPUT_MAPPING
-**File:** `src/lib/adapters/isometric/transformers/removal.ts:63-110`
+**File:** `src/lib/isometric/transformers/removal.ts:63-110`
 
 ```typescript
 const INPUT_MAPPING: Record<string, {...}> = {
@@ -36,7 +36,7 @@ const INPUT_MAPPING: Record<string, {...}> = {
 ```
 
 ### 2. Silent Skip on Unknown Keys
-**File:** `src/lib/adapters/isometric/transformers/removal.ts:144-147`
+**File:** `src/lib/isometric/transformers/removal.ts:144-147`
 
 ```typescript
 const mapping = INPUT_MAPPING[inputKey];
@@ -46,12 +46,12 @@ if (!mapping) {
 ```
 
 ### 3. Duplicate Aggregated Mapping
-**File:** `src/lib/adapters/isometric/transformers/removal.ts:330-376`
+**File:** `src/lib/isometric/transformers/removal.ts:330-376`
 
 Same hardcoded keys duplicated for multi-source blending.
 
 ### 4. No Template Version Tracking
-**File:** `src/lib/adapters/isometric/adapter.ts`
+**File:** `src/lib/isometric/adapter.ts`
 
 Template ID used but version not stored with synced records.
 
@@ -86,7 +86,7 @@ Template ID used but version not stored with synced records.
 
 ### Phase 2: Add Validation (~2 hours)
 
-- [ ] Create `src/lib/adapters/isometric/utils/template-validation.ts`
+- [ ] Create `src/lib/isometric/utils/template-validation.ts`
   ```typescript
   export function validateTemplateMapping(
     template: RemovalTemplate,
@@ -129,9 +129,9 @@ Template ID used but version not stored with synced records.
 | File | Action |
 |------|--------|
 | `src/config/isometric-mappings.ts` | **Create** - External mapping config |
-| `src/lib/adapters/isometric/utils/template-validation.ts` | **Create** - Validation functions |
-| `src/lib/adapters/isometric/transformers/removal.ts` | **Modify** - Use external config, remove duplicates |
-| `src/lib/adapters/isometric/adapter.ts` | **Modify** - Add validation call, version tracking |
+| `src/lib/isometric/utils/template-validation.ts` | **Create** - Validation functions |
+| `src/lib/isometric/transformers/removal.ts` | **Modify** - Use external config, remove duplicates |
+| `src/lib/isometric/adapter.ts` | **Modify** - Add validation call, version tracking |
 | `scripts/check-isometric-template.ts` | **Create** - Template change detection |
 | `src/db/schema/credit-batches.ts` | **Modify** (optional) - Add template version fields |
 
@@ -193,6 +193,6 @@ pnpm tsx scripts/check-isometric-template.ts
 
 ## References
 
-- Current implementation: `src/lib/adapters/isometric/transformers/removal.ts`
+- Current implementation: `src/lib/isometric/transformers/removal.ts`
 - Compliance gaps doc: `docs/isometric-compliance-gaps.md` (Gap #6)
 - Isometric template API: `src/lib/isometric/client.ts:366`

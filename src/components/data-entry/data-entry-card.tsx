@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface DataEntryCardProps {
   title: string;

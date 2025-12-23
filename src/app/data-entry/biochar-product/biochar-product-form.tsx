@@ -7,8 +7,8 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createBiocharProduct, updateBiocharProduct, deleteBiocharProduct } from "./actions";
-import { isBiocharProductComplete } from "@/lib/validations/completion";
+import { createBiocharProductFn, updateBiocharProductFn, deleteBiocharProductFn } from "@/fn/biochar-products";
+import { isBiocharProductComplete } from "@/lib/completion-checks";
 import type { SelectOption } from "../actions";
 
 interface BiocharProductData {
@@ -67,8 +67,8 @@ export function BiocharProductForm({
       const isComplete = isBiocharProductComplete(value);
 
       const result = isEdit && initialData
-        ? await updateBiocharProduct(initialData.id, value)
-        : await createBiocharProduct(value);
+        ? await updateBiocharProductFn(initialData.id, value)
+        : await createBiocharProductFn(value);
 
       if (!result.success) {
         toast.error(result.error);
@@ -96,7 +96,7 @@ export function BiocharProductForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteBiocharProduct(initialData.id);
+      const result = await deleteBiocharProductFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -108,42 +108,22 @@ export function BiocharProductForm({
   };
 
   // Filter storage locations
-  const biocharStorageLocations = React.useMemo(
-    () =>
-      options.storageLocations.filter(
-        (loc) =>
-          loc.name.toLowerCase().includes("biochar") ||
-          loc.name.toLowerCase().includes("pile")
-      ),
-    [options.storageLocations]
+  const biocharStorageLocations = options.storageLocations.filter(
+    (loc) =>
+      loc.name.toLowerCase().includes("biochar") ||
+      loc.name.toLowerCase().includes("pile")
   );
-  const productStorageLocations = React.useMemo(
-    () =>
-      options.storageLocations.filter(
-        (loc) =>
-          loc.name.toLowerCase().includes("product") ||
-          loc.name.toLowerCase().includes("pile")
-      ),
-    [options.storageLocations]
+  const productStorageLocations = options.storageLocations.filter(
+    (loc) =>
+      loc.name.toLowerCase().includes("product") ||
+      loc.name.toLowerCase().includes("pile")
   );
 
-  // Memoized options
-  const facilityOptions = React.useMemo(
-    () => options.facilities.map((f) => ({ value: f.id, label: f.name })),
-    [options.facilities]
-  );
-  const formulationOptions = React.useMemo(
-    () => formulations.map((f) => ({ value: f.id, label: f.name })),
-    [formulations]
-  );
-  const biocharStorageOptions = React.useMemo(
-    () => biocharStorageLocations.map((l) => ({ value: l.id, label: l.name })),
-    [biocharStorageLocations]
-  );
-  const productStorageOptions = React.useMemo(
-    () => productStorageLocations.map((l) => ({ value: l.id, label: l.name })),
-    [productStorageLocations]
-  );
+  // Convert options to { value, label } format
+  const facilityOptions = options.facilities.map((f) => ({ value: f.id, label: f.name }));
+  const formulationOptions = formulations.map((f) => ({ value: f.id, label: f.name }));
+  const biocharStorageOptions = biocharStorageLocations.map((l) => ({ value: l.id, label: l.name }));
+  const productStorageOptions = productStorageLocations.map((l) => ({ value: l.id, label: l.name }));
 
   return (
     <form.Subscribe selector={(state) => state.values}>

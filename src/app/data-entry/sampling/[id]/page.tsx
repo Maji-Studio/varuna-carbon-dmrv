@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getFormOptions } from "../../actions";
-import { getSample, getProductionRunsForSampling } from "../actions";
+import { getSampleFn } from "@/fn/samples";
+import { getProductionRunsForDropdown } from "@/lib/actions/utils";
 import { SamplingForm } from "../sampling-form";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +14,8 @@ export default async function EditSamplingPage({ params }: PageProps) {
   const { id } = await params;
   const [options, productionRuns, sample] = await Promise.all([
     getFormOptions(),
-    getProductionRunsForSampling(),
-    getSample(id),
+    getProductionRunsForDropdown(),
+    getSampleFn(id),
   ]);
 
   if (!sample) {

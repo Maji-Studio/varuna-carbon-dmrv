@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getFormOptions } from "../../actions";
-import { getProductionRun } from "../actions";
+import { getProductionRunFn } from "@/fn/production-runs";
 import { ProductionRunForm } from "../production-run-form";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function EditProductionRunPage({ params }: PageProps) {
   const { id } = await params;
   const [options, productionRun] = await Promise.all([
     getFormOptions(),
-    getProductionRun(id),
+    getProductionRunFn(id),
   ]);
 
   if (!productionRun) {

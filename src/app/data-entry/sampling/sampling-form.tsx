@@ -7,8 +7,8 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createSample, updateSample, deleteSample } from "./actions";
-import { isSamplingComplete } from "@/lib/validations/completion";
+import { createSampleFn, updateSampleFn, deleteSampleFn } from "@/fn/samples";
+import { isSampleComplete } from "@/lib/completion-checks";
 import type { SelectOption } from "../actions";
 
 interface ProductionRunOption {
@@ -68,11 +68,11 @@ export function SamplingForm({
       notes: initialData?.notes ?? "",
     },
     onSubmit: async ({ value }) => {
-      const isComplete = isSamplingComplete(value);
+      const isComplete = isSampleComplete(value);
 
       const result = isEdit && initialData
-        ? await updateSample(initialData.id, value)
-        : await createSample(value);
+        ? await updateSampleFn(initialData.id, value)
+        : await createSampleFn(value);
 
       if (!result.success) {
         toast.error(result.error);
@@ -100,7 +100,7 @@ export function SamplingForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteSample(initialData.id);
+      const result = await deleteSampleFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -111,24 +111,15 @@ export function SamplingForm({
     });
   };
 
-  // Memoized options
-  const productionRunOptions = React.useMemo(
-    () => productionRuns.map((pr) => ({ value: pr.id, label: pr.name })),
-    [productionRuns]
-  );
-  const reactorOptions = React.useMemo(
-    () => options.reactors.map((r) => ({ value: r.id, label: r.name })),
-    [options.reactors]
-  );
-  const operatorOptions = React.useMemo(
-    () => options.operators.map((o) => ({ value: o.id, label: o.name })),
-    [options.operators]
-  );
+  // Convert options to { value, label } format
+  const productionRunOptions = productionRuns.map((pr) => ({ value: pr.id, label: pr.name }));
+  const reactorOptions = options.reactors.map((r) => ({ value: r.id, label: r.name }));
+  const operatorOptions = options.operators.map((o) => ({ value: o.id, label: o.name }));
 
   return (
     <form.Subscribe selector={(state) => state.values}>
       {(values) => {
-        const isComplete = isSamplingComplete(values);
+        const isComplete = isSampleComplete(values);
 
         return (
           <FormPageLayout
