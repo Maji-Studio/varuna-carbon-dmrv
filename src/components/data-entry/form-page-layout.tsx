@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 interface FormPageLayoutProps {
   title: string;

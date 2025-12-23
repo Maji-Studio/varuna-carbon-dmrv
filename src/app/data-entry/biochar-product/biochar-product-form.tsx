@@ -7,7 +7,7 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createBiocharProduct, updateBiocharProduct, deleteBiocharProduct } from "./actions";
+import { createBiocharProductFn, updateBiocharProductFn, deleteBiocharProductFn } from "@/fn/biochar-products";
 import { isBiocharProductComplete } from "@/lib/validations/completion";
 import type { SelectOption } from "../actions";
 
@@ -67,8 +67,8 @@ export function BiocharProductForm({
       const isComplete = isBiocharProductComplete(value);
 
       const result = isEdit && initialData
-        ? await updateBiocharProduct(initialData.id, value)
-        : await createBiocharProduct(value);
+        ? await updateBiocharProductFn(initialData.id, value)
+        : await createBiocharProductFn(value);
 
       if (!result.success) {
         toast.error(result.error);
@@ -96,7 +96,7 @@ export function BiocharProductForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteBiocharProduct(initialData.id);
+      const result = await deleteBiocharProductFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;

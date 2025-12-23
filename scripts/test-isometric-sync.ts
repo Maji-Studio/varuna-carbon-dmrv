@@ -19,8 +19,7 @@ import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '../src/db/schema';
-import { syncCreditBatch } from '../src/lib/adapters/isometric/adapter';
-import { isometric } from '../src/lib/isometric/client';
+import { syncCreditBatch, isometric } from '../src/lib/isometric';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {

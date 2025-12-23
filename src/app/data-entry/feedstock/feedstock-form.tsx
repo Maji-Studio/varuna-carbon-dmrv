@@ -10,9 +10,9 @@ import { PhotoUpload } from "@/components/forms/photo-upload";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
-import { createFeedstock, updateFeedstock, deleteFeedstock } from "./actions";
+import { createFeedstockFn, updateFeedstockFn, deleteFeedstockFn } from "@/fn/feedstocks";
 import { isCombinedFeedstockComplete } from "@/lib/validations/completion";
-import { calculateDistanceKm } from "@/lib/utils";
+import { calculateDistanceKm } from "@/utils";
 import type { SelectOption, VehicleOption } from "../actions";
 
 interface FeedstockData {
@@ -83,8 +83,8 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
       const isComplete = isCombinedFeedstockComplete(value);
 
       const result = isEdit && initialData
-        ? await updateFeedstock(initialData.id, value)
-        : await createFeedstock(value);
+        ? await updateFeedstockFn(initialData.id, value)
+        : await createFeedstockFn(value);
 
       if (!result.success) {
         toast.error(result.error);
@@ -112,7 +112,7 @@ export function FeedstockForm({ mode, initialData, options }: FeedstockFormProps
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteFeedstock(initialData.id);
+      const result = await deleteFeedstockFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;

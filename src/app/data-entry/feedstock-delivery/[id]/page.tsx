@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getFormOptions } from "../../actions";
-import { getFeedstockDelivery } from "../actions";
+import { getFeedstockDeliveryFn } from "@/fn/feedstock-deliveries";
 import { FeedstockDeliveryForm } from "../feedstock-delivery-form";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function EditFeedstockDeliveryPage({ params }: PageProps) {
   const { id } = await params;
   const [options, delivery] = await Promise.all([
     getFormOptions(),
-    getFeedstockDelivery(id),
+    getFeedstockDeliveryFn(id),
   ]);
 
   if (!delivery) {

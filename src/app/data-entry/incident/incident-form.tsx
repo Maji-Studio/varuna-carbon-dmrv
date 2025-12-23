@@ -7,7 +7,7 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createIncident, updateIncident, deleteIncident } from "./actions";
+import { createIncidentFn, updateIncidentFn, deleteIncidentFn } from "@/fn/incidents";
 import { isIncidentComplete } from "@/lib/validations/completion";
 import type { SelectOption } from "../actions";
 
@@ -59,8 +59,8 @@ export function IncidentForm({
       const isComplete = isIncidentComplete(value);
 
       const result = isEdit && initialData
-        ? await updateIncident(initialData.id, value)
-        : await createIncident(value);
+        ? await updateIncidentFn(initialData.id, value)
+        : await createIncidentFn(value);
 
       if (!result.success) {
         toast.error(result.error);
@@ -88,7 +88,7 @@ export function IncidentForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteIncident(initialData.id);
+      const result = await deleteIncidentFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;

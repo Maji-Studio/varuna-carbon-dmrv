@@ -7,7 +7,7 @@ import { useAppForm } from "@/components/forms/form-context";
 import { FormPageLayout } from "@/components/data-entry";
 import { FormSection } from "@/components/forms/form-section";
 import { PhotoUpload } from "@/components/forms/photo-upload";
-import { createSample, updateSample, deleteSample } from "./actions";
+import { createSampleFn, updateSampleFn, deleteSampleFn } from "@/fn/samples";
 import { isSamplingComplete } from "@/lib/validations/completion";
 import type { SelectOption } from "../actions";
 
@@ -71,8 +71,8 @@ export function SamplingForm({
       const isComplete = isSamplingComplete(value);
 
       const result = isEdit && initialData
-        ? await updateSample(initialData.id, value)
-        : await createSample(value);
+        ? await updateSampleFn(initialData.id, value)
+        : await createSampleFn(value);
 
       if (!result.success) {
         toast.error(result.error);
@@ -100,7 +100,7 @@ export function SamplingForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteSample(initialData.id);
+      const result = await deleteSampleFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;

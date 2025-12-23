@@ -10,12 +10,12 @@ import { PhotoUpload } from "@/components/forms/photo-upload";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
-  createFeedstockDelivery,
-  updateFeedstockDelivery,
-  deleteFeedstockDelivery,
-} from "./actions";
+  createFeedstockDeliveryFn,
+  updateFeedstockDeliveryFn,
+  deleteFeedstockDeliveryFn,
+} from "@/fn/feedstock-deliveries";
 import { isFeedstockDeliveryComplete } from "@/lib/validations/completion";
-import { calculateDistanceKm } from "@/lib/utils";
+import { calculateDistanceKm } from "@/utils";
 import type { SelectOption, VehicleOption } from "../actions";
 
 interface FeedstockDeliveryData {
@@ -80,8 +80,8 @@ export function FeedstockDeliveryForm({
 
       const result =
         isEdit && initialData
-          ? await updateFeedstockDelivery(initialData.id, value)
-          : await createFeedstockDelivery(value);
+          ? await updateFeedstockDeliveryFn(initialData.id, value)
+          : await createFeedstockDeliveryFn(value);
 
       if (!result.success) {
         toast.error(result.error);
@@ -109,7 +109,7 @@ export function FeedstockDeliveryForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteFeedstockDelivery(initialData.id);
+      const result = await deleteFeedstockDeliveryFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Wheat, Flame, Truck, Package, FlaskConical, AlertTriangle } from "lucide-react";
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/utils";
 
 type EntryType = "feedstock" | "production_run" | "feedstock_delivery" | "biochar_product" | "sampling" | "incident";
 

@@ -18,10 +18,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlusIcon, TrashIcon, UploadIcon } from "lucide-react";
 import {
-  createProductionRun,
-  updateProductionRun,
-  deleteProductionRun,
-} from "./actions";
+  createProductionRunFn,
+  updateProductionRunFn,
+  deleteProductionRunFn,
+} from "@/fn/production-runs";
 import type { SelectOption } from "../actions";
 
 interface ProductionRunData {
@@ -129,8 +129,8 @@ export function ProductionRunForm({
 
       const result =
         isEdit && initialData
-          ? await updateProductionRun(initialData.id, formData)
-          : await createProductionRun(formData);
+          ? await updateProductionRunFn(initialData.id, formData)
+          : await createProductionRunFn(formData);
 
       if (!result.success) {
         toast.error(result.error);
@@ -158,7 +158,7 @@ export function ProductionRunForm({
   const handleDelete = async () => {
     if (!initialData?.id) return;
     startTransition(async () => {
-      const result = await deleteProductionRun(initialData.id);
+      const result = await deleteProductionRunFn(initialData.id);
       if (!result.success) {
         toast.error(result.error);
         return;

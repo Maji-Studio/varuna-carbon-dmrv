@@ -1,25 +1,24 @@
-import type {
-  FeedstockFormValues,
-  FeedstockDeliveryFormValues,
-  CombinedFeedstockFormValues,
-  ProductionRunFormValues,
-  SamplingFormValues,
-  IncidentFormValues,
-  BiocharProductFormValues,
-} from "./data-entry";
+/**
+ * Completion check functions for form components.
+ * These determine if a record has enough data to be considered "complete".
+ * Used for UI indicators in data entry forms.
+ */
 
 /**
  * Check if feedstock delivery form has all required fields filled
  */
-export function isFeedstockDeliveryComplete(
-  values: Partial<FeedstockDeliveryFormValues>
-): boolean {
+export function isFeedstockDeliveryComplete(values: {
+  facilityId?: string;
+  supplierId?: string;
+  deliveryDate?: Date;
+  feedstockTypeId?: string;
+  weightKg?: number;
+  moisturePercent?: number;
+}): boolean {
   return Boolean(
-    // Delivery requirements
     values.facilityId &&
       values.supplierId &&
       values.deliveryDate &&
-      // Feedstock requirements
       values.feedstockTypeId &&
       values.weightKg !== undefined &&
       values.weightKg > 0 &&
@@ -29,11 +28,14 @@ export function isFeedstockDeliveryComplete(
 
 /**
  * Check if feedstock form has all required fields filled
- * Note: supplierId is now tracked on the feedstock delivery, not the feedstock
  */
-export function isFeedstockComplete(
-  values: Partial<FeedstockFormValues>
-): boolean {
+export function isFeedstockComplete(values: {
+  facilityId?: string;
+  feedstockTypeId?: string;
+  weightKg?: number;
+  moisturePercent?: number;
+  storageLocationId?: string;
+}): boolean {
   return Boolean(
     values.facilityId &&
       values.feedstockTypeId &&
@@ -47,15 +49,19 @@ export function isFeedstockComplete(
 /**
  * Check if combined feedstock form (delivery + inventory) has all required fields filled
  */
-export function isCombinedFeedstockComplete(
-  values: Partial<CombinedFeedstockFormValues>
-): boolean {
+export function isCombinedFeedstockComplete(values: {
+  facilityId?: string;
+  supplierId?: string;
+  deliveryDate?: Date;
+  feedstockTypeId?: string;
+  weightKg?: number;
+  moisturePercent?: number;
+  storageLocationId?: string;
+}): boolean {
   return Boolean(
-    // Delivery requirements
     values.facilityId &&
       values.supplierId &&
       values.deliveryDate &&
-      // Feedstock requirements
       values.feedstockTypeId &&
       values.weightKg !== undefined &&
       values.weightKg > 0 &&
@@ -67,9 +73,14 @@ export function isCombinedFeedstockComplete(
 /**
  * Check if production run form has all required fields filled
  */
-export function isProductionRunComplete(
-  values: Partial<ProductionRunFormValues> & { endTime?: Date }
-): boolean {
+export function isProductionRunComplete(values: {
+  facilityId?: string;
+  reactorId?: string;
+  operatorId?: string;
+  feedstockInputs?: Array<{ amountKg?: number }>;
+  biocharAmountKg?: number;
+  endTime?: Date;
+}): boolean {
   const totalFeedstockKg =
     values.feedstockInputs?.reduce(
       (sum, input) => sum + (input.amountKg || 0),
@@ -89,27 +100,30 @@ export function isProductionRunComplete(
 /**
  * Check if sampling form has all required fields filled
  */
-export function isSamplingComplete(
-  values: { productionRunId?: string }
-): boolean {
+export function isSamplingComplete(values: {
+  productionRunId?: string;
+}): boolean {
   return Boolean(values.productionRunId);
 }
 
 /**
  * Check if incident form has all required fields filled
  */
-export function isIncidentComplete(
-  values: { productionRunId?: string }
-): boolean {
+export function isIncidentComplete(values: {
+  productionRunId?: string;
+}): boolean {
   return Boolean(values.productionRunId);
 }
 
 /**
  * Check if biochar product form has all required fields filled
  */
-export function isBiocharProductComplete(
-  values: Partial<BiocharProductFormValues>
-): boolean {
+export function isBiocharProductComplete(values: {
+  facilityId?: string;
+  formulationId?: string;
+  totalWeightKg?: number;
+  storageLocationId?: string;
+}): boolean {
   return Boolean(
     values.facilityId &&
       values.formulationId &&
